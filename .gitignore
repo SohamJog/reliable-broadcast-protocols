@@ -1,0 +1,13 @@
+/target
+*.log
+*.data
+.vscode
+*.csv
+logs.txt
+c5-exp-data.zip
+anon-sosp-ucr.zip
+perf.data.old
+nodes-*.json
+testdata/
+ip_file
+Cargo.lock
