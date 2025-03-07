@@ -71,9 +71,9 @@ async fn main() -> Result<()> {
                 rbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
                     .unwrap();
         }
-        "ecc_rbc" => {
+        "addrbc" => {
             exit_tx =
-                ecc_rbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
+                addrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
                     .unwrap();
         }
         "ctrbc" => {

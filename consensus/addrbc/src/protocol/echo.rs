@@ -1,7 +1,8 @@
 use crypto::hash::{do_hash, Hash};
 use reed_solomon_rs::fec::fec::*;
 
-use crate::{protocol::rbc_state, Context, ProtMsg, ShareMsg};
+use crate::{Context, ProtMsg, ShareMsg};
+
 use types::WrapperMsg;
 
 use network::{plaintcp::CancelHandler, Acknowledgement};

@@ -34,4 +34,4 @@ for((i=0;i<4;i++)); do
 done
 
 # Kill all nodes sudo lsof -ti:7000-7015 | xargs kill -9
-# options for $5: rbc, ctrbc, ecc_rbc
+# options for $5: rbc, ctrbc, addrbc

@@ -23,7 +23,6 @@ use types::{Replica, SyncMsg, SyncState};
 use super::{Handler, ProtMsg, RBCState, SyncHandler};
 
 use types::WrapperMsg;
-use crate::Status;
 
 pub struct Context {
     /// Networking context

@@ -1,5 +1,5 @@
 [package]
-name = "ecc_rbc"
+name = "addrbc"
 version = "0.1.0"
 edition = "2021"
 
