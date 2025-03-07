@@ -2,19 +2,23 @@ use crypto::hash::Hash;
 use reed_solomon_rs::fec::fec::*;
 use std::collections::{HashMap, HashSet};
 
+// Node cannot send ready before Echo
+#[derive(PartialEq)]
+pub enum Status {
+    INIT,
+    ECHO,
+    READY,
+    OUTPUT,
+    TERMINATED,
+}
 pub struct RBCState {
     pub received_echo_count: HashMap<Hash, usize>,
     pub received_readys: HashMap<Hash, Vec<Share>>,
-
     pub echo_senders: HashMap<Hash, HashSet<usize>>,
     pub ready_senders: HashMap<Hash, HashSet<usize>>,
-
     pub fragment: Share,
-
-    pub done: bool,
-
     pub output_message: Vec<u8>,
-    pub terminated: bool,
+    pub status: Status,
 }
 
 impl RBCState {
@@ -28,9 +32,8 @@ impl RBCState {
                 number: 0,
                 data: vec![],
             },
-            done: false,
             output_message: vec![],
-            terminated: false,
+            status: Status::INIT,
         }
     }
 }

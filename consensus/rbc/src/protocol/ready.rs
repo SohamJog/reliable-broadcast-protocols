@@ -80,7 +80,7 @@ impl Context {
                 let should_terminate = {
                     let rbc_context = self.rbc_context.entry(instance_id).or_default();
                     if !rbc_context.terminated {
-                        log::info!("Outputting {:?}", msg.content.clone());
+                        log::info!("Outputting {:?} for instance id {}", msg.content.clone(), instance_id);
                         rbc_context.terminated = true;
                         true
                     } else {

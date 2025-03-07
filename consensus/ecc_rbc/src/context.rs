@@ -23,6 +23,7 @@ use types::{Replica, SyncMsg, SyncState};
 use super::{Handler, ProtMsg, RBCState, SyncHandler};
 
 use types::WrapperMsg;
+use crate::Status;
 
 pub struct Context {
     /// Networking context
@@ -185,14 +186,10 @@ impl Context {
                                 .duration_since(UNIX_EPOCH)
                                 .unwrap()
                                 .as_millis());
-                            // Start your protocol from here
-                            // Write a function to broadcast a message. We demonstrate an example with a PING function
                             // Dealer sends message to everybody. <M, init>
-                            if self.myid == 0 {
                                 let rbc_inst_id = self.max_id + 1;
                                 self.max_id = rbc_inst_id;
                                 self.start_init(sync_msg.value, rbc_inst_id).await;
-                            }
                             // wait for messages
                         },
                         SyncState::STOP =>{

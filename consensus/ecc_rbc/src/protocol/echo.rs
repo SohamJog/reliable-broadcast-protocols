@@ -1,10 +1,11 @@
 use crypto::hash::{do_hash, Hash};
 use reed_solomon_rs::fec::fec::*;
 
-use crate::{Context, ShareMsg, ProtMsg};
+use crate::{protocol::rbc_state, Context, ProtMsg, ShareMsg};
 use types::WrapperMsg;
 
 use network::{plaintcp::CancelHandler, Acknowledgement};
+use crate::Status;
 impl Context {
     pub async fn echo_self(&mut self, hash: Hash, share: Share, instance_id: usize) {
         let msg = ShareMsg {
@@ -49,7 +50,8 @@ impl Context {
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
             if replica == self.myid {
-                self.echo_self(hash, shares[self.myid].clone(), instance_id).await;
+                self.echo_self(hash, shares[self.myid].clone(), instance_id)
+                    .await;
                 continue;
             }
             let msg = ShareMsg {
@@ -60,9 +62,11 @@ impl Context {
             let protocol_msg = ProtMsg::Echo(msg, instance_id);
             let wrapper_msg = WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
             let cancel_handler: CancelHandler<Acknowledgement> =
-            self.net_send.send(replica, wrapper_msg).await;
+                self.net_send.send(replica, wrapper_msg).await;
             self.add_cancel_handler(cancel_handler);
         }
+        let rbc_context = self.rbc_context.entry(instance_id).or_default();
+        rbc_context.status = Status::ECHO;
     }
 
     pub async fn handle_echo(self: &mut Context, msg: ShareMsg, instance_id: usize) {
@@ -85,12 +89,17 @@ impl Context {
                 }
             }
 
+            let rbc_context = self.rbc_context.entry(instance_id).or_default();
+            let status = &rbc_context.status;
+            let _ = rbc_context;
             // Check if we've received n - techoes for this message
-            if max_count == self.num_nodes - self.num_faults {
+            if max_count >= self.num_nodes - self.num_faults && *status == Status::ECHO {
                 //<Ready, f(your own fragment), h> to everyone
                 if let Some(hash) = mode_content {
                     self.start_ready(hash, instance_id).await;
                 }
+                let rbc_context = self.rbc_context.entry(instance_id).or_default();
+                rbc_context.status = Status::READY;
             }
         }
     }

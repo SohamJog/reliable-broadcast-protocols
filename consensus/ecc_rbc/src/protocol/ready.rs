@@ -1,4 +1,4 @@
-use crate::{Context, ProtMsg, ShareMsg};
+use crate::{Context, ProtMsg, ShareMsg, Status};
 use crypto::hash::Hash;
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::FEC;
@@ -44,16 +44,21 @@ impl Context {
         }
     }
 
-    // TODO: handle ready
+
     pub async fn handle_ready(self: &mut Context, msg: ShareMsg, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        if rbc_context.terminated {
+        if rbc_context.status == Status::TERMINATED{
             return;
         }
-        if rbc_context.done {
-            rbc_context.terminated = true;
+        if rbc_context.status == Status::OUTPUT {
             let output_message = rbc_context.output_message.clone();
+            rbc_context.status = Status::TERMINATED;
             let _ = rbc_context;
+            log::info!(
+                "Terminating with: {:?} for instance id: {:?}",
+                output_message,
+                instance_id
+            );
             self.terminate(output_message).await;
             return;
         }
@@ -97,15 +102,21 @@ impl Context {
                     log::info!("Decoding {:?}", shares_for_correction.to_vec());
                     match f.decode([].to_vec(), shares_for_correction.to_vec()) {
                         Ok(data) => {
-                            log::info!("Outputting: {:?}", data);
-                            rbc_context.output_message = data;
-                            rbc_context.done = true;
+                            if data.len() != 0 {
+                                log::info!(
+                                    "Outputting: {:?} for instance id: {:?}",
+                                    data,
+                                    instance_id
+                                );
+                                rbc_context.output_message = data;
+                                rbc_context.status = Status::OUTPUT;
+                            }
                         }
                         Err(e) => {
                             log::info!("Decoding failed with error: {}", e.to_string());
                         }
                     }
-                    if rbc_context.done {
+                    if rbc_context.status == Status::OUTPUT {
                         return;
                     }
                 }
