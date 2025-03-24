@@ -60,7 +60,7 @@ done
 
 # Final report
 if [ ${#MISSING_IDS[@]} -gt 0 ]; then
-    echo -e "\n \e[32m Some instance IDs are missing across logs.[0m"
+    echo -e "\n\033[31mSome instance IDs are missing across logs.\033[0m"
 else
-    echo -e "\n All logs contain the required instance IDs."
+    echo -e "\n\033[32mAll logs contain the required instance IDs.\033[0m"
 fi
