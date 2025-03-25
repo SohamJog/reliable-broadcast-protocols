@@ -9,6 +9,7 @@ impl Context {
             instance_id,
             input_msg
         );
+        log::info!("My byz status: {}", self.byz);
         // Draft a message
         let msg = Msg {
             content: input_msg.clone(),

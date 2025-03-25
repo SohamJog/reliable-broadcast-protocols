@@ -33,7 +33,7 @@ pub struct Context {
     pub myid: usize,
     pub num_faults: usize,
     pub inp_message: Vec<u8>,
-    byz: bool,
+    pub byz: bool,
 
     /// Secret Key map
     pub sec_key_map: HashMap<Replica, Vec<u8>>,
@@ -94,7 +94,7 @@ impl Context {
                 num_nodes: config.num_nodes,
                 sec_key_map: HashMap::default(),
                 myid: config.id,
-                byz: byz,
+                byz: byz & (config.id < config.num_faults),
                 num_faults: config.num_faults,
                 cancel_handlers: HashMap::default(),
                 exit_rx: exit_rx,
@@ -120,10 +120,26 @@ impl Context {
     pub async fn broadcast(&mut self, protmsg: ProtMsg) {
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
-            if self.byz && replica % 2 == 0 {
-                // Simulates a crash fault
+            if self.byz && replica != self.myid {
+                let mut byz_msg = protmsg.clone();
+
+                // Match to access inner message
+                match &mut byz_msg {
+                    ProtMsg::Sendall(msg, _)
+                    | ProtMsg::Echo(msg, _)
+                    | ProtMsg::Ready(msg, _)
+                    | ProtMsg::Output(msg, _)
+                    | ProtMsg::Ping(msg, _) => {
+                        msg.content = vec![0; msg.content.len()];
+                    }
+                }
+
+                let wrapper_msg = WrapperMsg::new(byz_msg, self.myid, &sec_key.as_slice());
+                let cancel_handler = self.net_send.send(replica, wrapper_msg).await;
+                self.add_cancel_handler(cancel_handler);
                 continue;
             }
+
             if replica != self.myid {
                 let wrapper_msg = WrapperMsg::new(protmsg.clone(), self.myid, &sec_key.as_slice());
                 let cancel_handler: CancelHandler<Acknowledgement> =
