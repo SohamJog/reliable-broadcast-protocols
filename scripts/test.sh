@@ -1,37 +1,40 @@
-# A script to test quickly
+#!/bin/bash
 
-killall {node} &> /dev/null
+# A script to quickly test node startup and protocol execution
+
+# Kill existing node processes
+pkill -f "./target/release/node"                                       
+killall node &> /dev/null
 rm -rf /tmp/*.db &> /dev/null
+
+# Default values
 vals=(27000 27100 27200 27300)
-
-#rand=$(gshuf -i 1000-150000000 -n 1)
-TESTDIR=${TESTDIR:="testdata/hyb_4"}
 TYPE=${TYPE:="release"}
+protocol=${5:-rbc}
+NUM_NODES=${6:-4}
+TESTDIR=${TESTDIR:="testdata/hyb_$NUM_NODES"}
 
-# check if $5 is set, otherwise set to rbc
-protocol=${5:-rbc} 
-
-
-# Run the syncer now
+# Run the syncer
 ./target/$TYPE/node \
-    --config $TESTDIR/nodes-0.json \
+    --config "$TESTDIR/nodes-0.json" \
     --ip ip_file \
     --protocol sync \
     --input 100 \
-    --syncer $1 \
-    --bfile $4 \
+    --syncer "$1" \
+    --bfile "$4" \
     --byzantine false > logs/syncer.log &
 
-for((i=0;i<4;i++)); do
-./target/$TYPE/node \
-    --config $TESTDIR/nodes-$i.json \
-    --ip ip_file \
-    --protocol $protocol \
-    --input $2 \
-    --syncer $1 \
-    --bfile $4 \
-    --byzantine $3 > logs/$i.log &
+# Run all the nodes
+for ((i=0; i<NUM_NODES; i++)); do
+    ./target/$TYPE/node \
+        --config "$TESTDIR/nodes-$i.json" \
+        --ip ip_file \
+        --protocol "$protocol" \
+        --input "$2" \
+        --syncer "$1" \
+        --bfile "$4" \
+        --byzantine "$3" > logs/$i.log &
 done
 
-# Kill all nodes sudo lsof -ti:7000-7015 | xargs kill -9
-# options for $5: rbc, ctrbc, addrbc
+# Example usage:
+# ./test.sh syncer_id 10 false bfile_path rbc 4

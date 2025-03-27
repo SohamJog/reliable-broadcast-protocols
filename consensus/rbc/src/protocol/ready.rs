@@ -48,10 +48,11 @@ impl Context {
                 .or_default() += 1;
 
             log::info!(
-                "Received Ready message {:?} from node {}. num faults: {}",
+                "Received Ready message {:?} from node {}. num faults: {}, instance id: {}",
                 msg.content,
                 msg.origin,
-                self.num_faults
+                self.num_faults,
+                instance_id,
             );
 
             // let count = self.received_ready_count.get(&msg.content).unwrap();
@@ -68,7 +69,11 @@ impl Context {
             // on t + 1 readys
             if max_count == self.num_faults + 1 && !rbc_context.second_ready {
                 if let Some(hash) = mode_content {
-                    log::info!("On t + 1 readys, sending READY with content {:?}", hash);
+                    log::info!(
+                        "On t + 1 readys, sending READY with content {:?}. Instance id: {}",
+                        hash,
+                        instance_id
+                    );
                     rbc_context.second_ready = true;
                 }
             }
@@ -80,7 +85,11 @@ impl Context {
                 let should_terminate = {
                     let rbc_context = self.rbc_context.entry(instance_id).or_default();
                     if !rbc_context.terminated {
-                        log::info!("Outputting {:?} for instance id {}", msg.content.clone(), instance_id);
+                        log::info!(
+                            "Outputting {:?} for instance id {}",
+                            msg.content.clone(),
+                            instance_id
+                        );
                         rbc_context.terminated = true;
                         true
                     } else {

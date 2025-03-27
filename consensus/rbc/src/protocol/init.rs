@@ -5,9 +5,10 @@ use crate::Context;
 impl Context {
     pub async fn start_init(self: &mut Context, input_msg: Vec<u8>, instance_id: usize) {
         log::info!(
-            "Starting RBC Init for instance id {} with msg {:?}",
+            "Starting RBC Init for instance id {} with msg {:?}, instance id: {}",
             instance_id,
-            input_msg
+            input_msg,
+            instance_id,
         );
         log::info!("My byz status: {}", self.byz);
         // Draft a message
@@ -29,9 +30,10 @@ impl Context {
         self.start_echo(msg.content.clone(), instance_id).await;
 
         log::info!(
-            "Received Sendall message {:?} from node {}.",
+            "Received Sendall message {:?} from node {}. Instance Id: {}",
             msg.content,
             msg.origin,
+            instance_id,
         );
     }
 }
