@@ -1,20 +1,30 @@
-# Write the following bash script: For <input> times, 
-# run: pkill -f "./target/release/node"  
-# run: ./scripts/test.sh testdata/hyb_4/syncer Hi false testdata/test_msgs.txt addrbc
-# wait 1 second
-# run: ./scripts/check_logs.sh 4
-# Usage: ./multiple_runs.sh <num_nodes>
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <num_iterations>"
+#!/bin/bash
+
+# Usage: ./multiple_runs.sh <num_iterations> [<num_nodes> <protocol> <byzantine>]
+# Defaults:
+#   <num_nodes> = 4
+#   <protocol> = rbc
+#   <byzantine> = false
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <num_iterations> [<num_nodes> <protocol> <byzantine>]"
     exit 1
 fi
 
-for ((i=0; i<$1; i++))
+NUM_ITERATIONS=$1
+NUM_NODES=${2:-4}
+PROTOCOL=${3:-rbc}
+BYZANTINE=${4:-false}
+
+for ((i=0; i<NUM_ITERATIONS; i++))
 do
+  echo "=== Run $((i+1)) ==="
   pkill -f "./target/release/node"
-  ./scripts/test.sh testdata/hyb_4/syncer Hi false testdata/test_msgs.txt addrbc
+
+  ./scripts/test.sh testdata/hyb_"$NUM_NODES"/syncer Hi "$BYZANTINE" testdata/test_msgs.txt "$PROTOCOL" "$NUM_NODES"
+  
   sleep 1
-  ./scripts/check_logs.sh 4
+  
+  ./scripts/check_logs.sh "$NUM_NODES"
+  ./scripts/latencies.sh
 done
-
-

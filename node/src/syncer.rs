@@ -155,8 +155,14 @@ impl Syncer {
                             let value_set = self.rbc_comp_values.entry(rbc_msg.id).or_default();
                             value_set.insert(rbc_msg.msg.to_string());
                             if latency_map.len() == self.num_nodes{
-
-                                let start_time = self.rbc_start_times.get(&rbc_msg.id).unwrap();
+                                if self.rbc_start_times.get(&rbc_msg.id).is_none(){
+                                    log::error!("Missing start time for RBC id {}", rbc_msg.id);
+                                    continue;
+                                }
+                                let start_time = self.rbc_start_times
+                                .get(&rbc_msg.id)
+                                .expect(&format!("Missing start time for RBC id {}", rbc_msg.id));
+                                log::info!("start time: {:?}, msg id: {}",start_time, rbc_msg.id);
                                 // All nodes terminated protocol
 
                                 let mut vec_times = Vec::new();

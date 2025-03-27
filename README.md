@@ -20,12 +20,12 @@ mkdir hyb_16
 Test regular(Bracha's) RBC with 16 nodes:
 ```bash
 pkill -f "./target/release/node" 
-./scripts/test.sh testdata/hyb_16/syncer Hi false testdata/test_msgs.txt 
+./scripts/test.sh testdata/hyb_16/syncer Hi false testdata/test_msgs.txt rbc 16
 ```
 
 To try ADD-RBC or other protocols, you can append the protocol name to the test script:
 ```bash
-./scripts/test.sh testdata/hyb_16/syncer Hi false testdata/test_msgs.txt addrbc
+./scripts/test.sh testdata/hyb_16/syncer Hi false testdata/test_msgs.txt addrbc 16
 ```
 
 Run this script to check if the logs are consistent:
@@ -33,13 +33,10 @@ Run this script to check if the logs are consistent:
  ./scripts/check_logs.sh <number of nodes>
 ```
 
-Test multiple runs of ADD-RBC with 4 nodes
+Test multiple runs of ADD-RBC: 
 ```bash
-./scripts/multiple_runs.sh <number of runs>
+./scripts/multiple_runs.sh <num_iterations> [<num_nodes> <protocol> <byzantine>]
 ```
-
-
-
 ---
 
 ## Experiments
