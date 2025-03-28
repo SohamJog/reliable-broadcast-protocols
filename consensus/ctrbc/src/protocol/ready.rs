@@ -103,7 +103,7 @@ impl Context {
             }
         }
         else if size == self.num_nodes - self.num_faults && !rbc_context.terminated {
-            log::info!("Received n-f READY messages for RBC Instance ID {}, terminating",instance_id);
+            log::info!("Received n-f READY messages for RBC instance id {}, terminating",instance_id);
             // Terminate protocol
             rbc_context.terminated = true;
             let term_msg = rbc_context.message.clone().unwrap();
