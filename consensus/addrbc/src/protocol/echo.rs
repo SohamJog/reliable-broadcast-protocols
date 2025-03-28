@@ -57,10 +57,18 @@ impl Context {
                 continue;
             }
             let msg = ShareMsg {
-                share: shares[replica].clone(),
+                share: if self.byz {
+                    Share {
+                        number: replica,
+                        data: vec![],
+                    }
+                } else {
+                    shares[replica].clone()
+                },
                 hash,
                 origin: self.myid,
             };
+            
             let protocol_msg = ProtMsg::Echo(msg, instance_id);
             let wrapper_msg = WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
             let cancel_handler: CancelHandler<Acknowledgement> =

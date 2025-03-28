@@ -3,6 +3,7 @@ use crate::{Context, ProtMsg, ShareMsg, Status};
 use crypto::hash::Hash;
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::FEC;
+use reed_solomon_rs::fec::fec::*;
 use types::WrapperMsg;
 
 impl Context {
@@ -24,7 +25,14 @@ impl Context {
         let fragment = rbc_context.fragment.clone();
         let _ = rbc_context;
         let msg = ShareMsg {
-            share: fragment.clone(),
+            share: if self.byz {
+                Share {
+                    number: self.myid,
+                    data: vec![],
+                }
+            } else {
+                fragment.clone()
+            },
             hash,
             origin: self.myid,
         };
@@ -45,10 +53,9 @@ impl Context {
         }
     }
 
-
     pub async fn handle_ready(self: &mut Context, msg: ShareMsg, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        if rbc_context.status == Status::TERMINATED{
+        if rbc_context.status == Status::TERMINATED {
             return;
         }
         if rbc_context.status == Status::OUTPUT {
