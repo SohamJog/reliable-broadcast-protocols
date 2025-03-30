@@ -36,6 +36,49 @@ impl RBCState {
             status: Status::INIT,
         }
     }
+    /*
+
+    fn get_max_echo_count(
+        rbc_context: &mut crate::RBCContext,
+        instance_id: usize,
+    ) -> (usize, Option<Hash>) {
+        let mut mode_content: Option<Hash> = None;
+        let mut max_count = 0;
+
+        for (content, &count) in rbc_context.received_echo_count.iter() {
+            if count > max_count {
+                max_count = count;
+                mode_content = Some(content.clone());
+            }
+        }
+        (max_count, mode_content)
+    }
+     */
+
+    pub fn get_max_echo_count (&self) -> (usize, Option<Hash>) {
+        let mut mode_content: Option<Hash> = None;
+        let mut max_count = 0;
+
+        for (content, &count) in self.received_echo_count.iter() {
+            if count > max_count {
+                max_count = count;
+                mode_content = Some(content.clone());
+            }
+        }
+        (max_count, mode_content)
+    }
+    pub fn get_max_ready_count (&self) -> (usize, Option<Hash>) {
+        let mut mode_content: Option<Hash> = None;
+        let mut max_count = 0;
+
+        for (content, count) in self.received_readys.iter() {
+            if count.len() > max_count {
+                max_count = count.len();
+                mode_content = Some(content.clone());
+            }
+        }
+        (max_count, mode_content)
+    }
 }
 
 impl Default for RBCState {
