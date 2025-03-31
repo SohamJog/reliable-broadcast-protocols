@@ -1,5 +1,8 @@
 use crate::{Context, Msg, ProtMsg};
 
+use super::rbc_state;
+use crate::Status;
+
 impl Context {
     // A function's input parameter needs to be borrowed as mutable only when
     // we intend to modify the variable in the function. Otherwise, it need not be borrowed as mutable.
@@ -8,6 +11,14 @@ impl Context {
 
     // Dealer sending message to everybody
     pub async fn start_init(self: &mut Context, input_msg: Vec<u8>, instance_id: usize) {
+        let rbc_context = self.rbc_context.entry(instance_id).or_default();
+        let status = &rbc_context.status;
+        assert!(
+            *status == Status::WAITING,
+            "INIT: Status is not WAITING for instance id: {:?}",
+            instance_id
+        );
+        rbc_context.status = Status::INIT;
         // Draft a message
         let msg = Msg {
             content: input_msg.clone(),

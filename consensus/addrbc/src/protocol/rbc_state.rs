@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 // Node cannot send ready before Echo
 #[derive(PartialEq)]
 pub enum Status {
+    WAITING,
     INIT,
     ECHO,
     READY,
@@ -33,7 +34,7 @@ impl RBCState {
                 data: vec![],
             },
             output_message: vec![],
-            status: Status::INIT,
+            status: Status::WAITING,
         }
     }
     /*

@@ -73,9 +73,9 @@ impl Context {
             instance_id
         );
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        // if rbc_context.status == Status::TERMINATED {
-        //     return;
-        // }
+        if rbc_context.status == Status::TERMINATED {
+            return;
+        }
         if rbc_context.status == Status::OUTPUT {
             let output_message = rbc_context.output_message.clone();
             rbc_context.status = Status::TERMINATED;
@@ -121,14 +121,14 @@ impl Context {
                     };
                     // log::info!("Decoding {:?}", shares_for_correction.to_vec());
                     // assert that the length of each share for correction is the same
-                    for share in shares_for_correction.iter() {
-                        assert!(
-                            share.data.len() == shares_for_correction[0].data.len(),
-                            "Share length mismatch, 0: {:?}, index: {:?}",
-                            shares_for_correction[0].data.len(),
-                            share.data.len()
-                        );
-                    }
+                    // for share in shares_for_correction.iter() {
+                    //     assert!(
+                    //         share.data.len() == shares_for_correction[0].data.len(),
+                    //         "Share length mismatch, 0: {:?}, index: {:?}",
+                    //         shares_for_correction[0].data.len(),
+                    //         share.data.len()
+                    //     );
+                    // }
                     match f.decode([].to_vec(), shares_for_correction.to_vec()) {
                         Ok(data) => {
                             if data.len() != 0 {

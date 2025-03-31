@@ -23,7 +23,7 @@ impl Context {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         let status = &rbc_context.status;
         assert!(
-            *status == Status::INIT,
+            *status == Status::INIT || *status == Status::WAITING,
             "Start Echo: Status is not INIT for instance id: {:?}",
             instance_id
         );

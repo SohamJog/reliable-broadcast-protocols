@@ -22,6 +22,7 @@ use types::{Replica, SyncMsg, SyncState};
 use super::{Handler, ProtMsg, RBCState, SyncHandler};
 
 use types::WrapperMsg;
+use crate::Status;
 
 pub struct Context {
     /// Networking context
@@ -199,7 +200,11 @@ impl Context {
                             // Dealer sends message to everybody. <M, init>
                                 let rbc_inst_id = self.max_id + 1;
                                 self.max_id = rbc_inst_id;
+                                let rbc_context = self.rbc_context.entry(rbc_inst_id).or_default();
+                                let status = &rbc_context.status;
+                                assert!(*status == Status::WAITING, "Status is not waiting during initialization");
                                 self.start_init(sync_msg.value, rbc_inst_id).await;
+
                             // wait for messages
                         },
                         SyncState::STOP =>{
