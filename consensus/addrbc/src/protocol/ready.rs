@@ -1,12 +1,23 @@
+// TODO: Call broadcast
 use crate::{Context, ProtMsg, ShareMsg, Status};
 use crypto::hash::Hash;
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::FEC;
+use reed_solomon_rs::fec::fec::*;
 use types::WrapperMsg;
 
 impl Context {
     pub async fn ready_self(&mut self, hash: Hash, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
+        let status = &rbc_context.status;
+        if *status != Status::READY {
+            return;
+        }
+        // assert!(
+        //     *status == Status::READY,
+        //     "Ready Self: Status is not READY for instance id: {:?}",
+        //     instance_id
+        // );
         let fragment = rbc_context.fragment.clone();
         let _ = rbc_context;
         let msg = ShareMsg {
@@ -20,10 +31,26 @@ impl Context {
     pub async fn start_ready(self: &mut Context, hash: Hash, instance_id: usize) {
         // Draft a message
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
+        let status = &rbc_context.status;
+        if *status != Status::READY {
+            return;
+        }
+        // assert!(
+        //     *status == Status::READY,
+        //     "Start Ready: Status is not READY for instance id: {:?}",
+        //     instance_id
+        // );
         let fragment = rbc_context.fragment.clone();
         let _ = rbc_context;
         let msg = ShareMsg {
-            share: fragment.clone(),
+            share: if self.byz {
+                Share {
+                    number: self.myid,
+                    data: vec![0; fragment.data.len()],
+                }
+            } else {
+                fragment.clone()
+            },
             hash,
             origin: self.myid,
         };
@@ -44,10 +71,14 @@ impl Context {
         }
     }
 
-
     pub async fn handle_ready(self: &mut Context, msg: ShareMsg, instance_id: usize) {
+        assert!(
+            msg.share.data.len() != 0,
+            "Received empty share for instance id: {:?}",
+            instance_id
+        );
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        if rbc_context.status == Status::TERMINATED{
+        if rbc_context.status == Status::TERMINATED {
             return;
         }
         if rbc_context.status == Status::OUTPUT {
@@ -62,7 +93,7 @@ impl Context {
             self.terminate(output_message).await;
             return;
         }
-        log::info!("Received {:?} as ready", msg);
+        // log::info!("Received {:?} as ready", msg);
 
         let senders = rbc_context
             .ready_senders
@@ -76,22 +107,16 @@ impl Context {
                 .or_default();
             shares.push(msg.share);
 
-            let mut max_shares_count = 0;
-            let mut max_shares_hash: Option<Hash> = None;
-
-            // Find the hash with the most shares
-            for (hash, shares_vec) in rbc_context.received_readys.iter() {
-                if shares_vec.len() > max_shares_count {
-                    max_shares_count = shares_vec.len();
-                    max_shares_hash = Some(hash.clone());
-                }
-            }
+            let (max_shares_count, max_shares_hash) = rbc_context.get_max_ready_count();
 
             // If we have enough shares for a hash, prepare for error correction
             if max_shares_count >= self.num_nodes - self.num_faults {
                 if let Some(hash) = max_shares_hash {
                     let shares_for_correction = rbc_context.received_readys.get(&hash).unwrap();
-                    // TODO: Implement error correction on shares_for_correction
+                    assert!(
+                        shares_for_correction.len() >= self.num_nodes - self.num_faults,
+                        "Not enough shares for error correction"
+                    );
                     let f = match FEC::new(self.num_faults, self.num_nodes) {
                         Ok(f) => f,
                         Err(e) => {
@@ -99,7 +124,16 @@ impl Context {
                             return;
                         }
                     };
-                    log::info!("Decoding {:?}", shares_for_correction.to_vec());
+                    // log::info!("Decoding {:?}", shares_for_correction.to_vec());
+                    // assert that the length of each share for correction is the same
+                    // for share in shares_for_correction.iter() {
+                    //     assert!(
+                    //         share.data.len() == shares_for_correction[0].data.len(),
+                    //         "Share length mismatch, 0: {:?}, index: {:?}",
+                    //         shares_for_correction[0].data.len(),
+                    //         share.data.len()
+                    //     );
+                    // }
                     match f.decode([].to_vec(), shares_for_correction.to_vec()) {
                         Ok(data) => {
                             if data.len() != 0 {

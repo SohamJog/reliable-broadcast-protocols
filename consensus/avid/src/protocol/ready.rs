@@ -56,7 +56,7 @@ impl Context {
             self.broadcast(ready_msg).await;
         }
         else if size == self.num_nodes - self.num_faults {
-            log::info!("Received n-f READY messages for RBC Instance ID {}, terminating",instance_id);
+            log::info!("Received n-f READY messages for RBC instance id {}, terminating",instance_id);
             // Terminate protocol
             avid_context.terminated = true;
             // Send message to recipients and terminate

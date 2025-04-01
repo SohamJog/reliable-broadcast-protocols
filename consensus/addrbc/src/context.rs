@@ -19,10 +19,10 @@ use tokio::sync::{
 // use tokio_util::time::DelayQueue;
 use types::{Replica, SyncMsg, SyncState};
 
-
 use super::{Handler, ProtMsg, RBCState, SyncHandler};
 
 use types::WrapperMsg;
+use crate::Status;
 
 pub struct Context {
     /// Networking context
@@ -35,7 +35,7 @@ pub struct Context {
     pub myid: usize,
     pub num_faults: usize,
     pub inp_message: Vec<u8>,
-    byz: bool,
+    pub byz: bool,
 
     /// Secret Key map
     pub sec_key_map: HashMap<Replica, Vec<u8>>,
@@ -95,7 +95,7 @@ impl Context {
                 num_nodes: config.num_nodes,
                 sec_key_map: HashMap::default(),
                 myid: config.id,
-                byz: byz,
+                byz: byz & (config.id < config.num_faults),
                 num_faults: config.num_faults,
                 cancel_handlers: HashMap::default(),
                 exit_rx: exit_rx,
@@ -121,8 +121,20 @@ impl Context {
     pub async fn broadcast(&mut self, protmsg: ProtMsg) {
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
-            if self.byz && replica % 2 == 0 {
-                // Simulates a crash fault
+            if self.byz && replica != self.myid {
+                let mut byz_msg = protmsg.clone();
+
+                // Match to access inner message
+                match &mut byz_msg {
+                    ProtMsg::Init(msg, _) => {
+                        msg.content = vec![0; msg.content.len()];
+                    }
+                    _ => {}
+                }
+
+                let wrapper_msg = WrapperMsg::new(byz_msg, self.myid, &sec_key.as_slice());
+                let cancel_handler = self.net_send.send(replica, wrapper_msg).await;
+                self.add_cancel_handler(cancel_handler);
                 continue;
             }
             if replica != self.myid {
@@ -188,7 +200,11 @@ impl Context {
                             // Dealer sends message to everybody. <M, init>
                                 let rbc_inst_id = self.max_id + 1;
                                 self.max_id = rbc_inst_id;
+                                let rbc_context = self.rbc_context.entry(rbc_inst_id).or_default();
+                                let status = &rbc_context.status;
+                                assert!(*status == Status::WAITING, "Status is not waiting during initialization");
                                 self.start_init(sync_msg.value, rbc_inst_id).await;
+
                             // wait for messages
                         },
                         SyncState::STOP =>{

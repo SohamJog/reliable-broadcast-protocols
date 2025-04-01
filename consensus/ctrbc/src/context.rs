@@ -19,8 +19,8 @@ use tokio::sync::{
 // use tokio_util::time::DelayQueue;
 use types::{Replica, SyncMsg, SyncState, WrapperMsg};
 
-use super::{Handler, SyncHandler, RBCState};
-use super::{ProtMsg};
+use super::ProtMsg;
+use super::{Handler, RBCState, SyncHandler};
 use crypto::aes_hash::HashState;
 
 pub struct Context {
@@ -34,7 +34,7 @@ pub struct Context {
     pub myid: usize,
     pub num_faults: usize,
     pub inp_message: Vec<u8>,
-    byz: bool,
+    pub byz: bool,
 
     /// Secret Key map
     pub sec_key_map: HashMap<Replica, Vec<u8>>,
@@ -45,19 +45,19 @@ pub struct Context {
     /// Cancel Handlers
     pub cancel_handlers: HashMap<u64, Vec<CancelHandler<Acknowledgement>>>,
     exit_rx: oneshot::Receiver<()>,
-    
-    // Each Reliable Broadcast instance is associated with a Unique Identifier. 
+
+    // Each Reliable Broadcast instance is associated with a Unique Identifier.
     pub rbc_context: HashMap<usize, RBCState>,
 
-    // Maximum number of RBCs that can be initiated by a node. Keep this as an identifier for RBC service. 
-    pub threshold: usize, 
+    // Maximum number of RBCs that can be initiated by a node. Keep this as an identifier for RBC service.
+    pub threshold: usize,
 
-    pub max_id: usize, 
+    pub max_id: usize,
 }
 
 impl Context {
     pub fn spawn(config: Node, message: Vec<u8>, byz: bool) -> anyhow::Result<oneshot::Sender<()>> {
-        // Add a separate configuration for RBC service. 
+        // Add a separate configuration for RBC service.
 
         let mut consensus_addrs: FnvHashMap<Replica, SocketAddr> = FnvHashMap::default();
         for (replica, address) in config.net_map.iter() {
@@ -86,9 +86,10 @@ impl Context {
             SyncHandler::new(tx_net_to_client),
         );
 
-        let consensus_net = TcpReliableSender::<Replica, WrapperMsg<ProtMsg>, Acknowledgement>::with_peers(
-            consensus_addrs.clone(),
-        );
+        let consensus_net =
+            TcpReliableSender::<Replica, WrapperMsg<ProtMsg>, Acknowledgement>::with_peers(
+                consensus_addrs.clone(),
+            );
         let sync_net =
             TcpReliableSender::<Replica, SyncMsg, Acknowledgement>::with_peers(syncer_map);
         let (exit_tx, exit_rx) = oneshot::channel();
@@ -99,8 +100,8 @@ impl Context {
         let key2 = [23u8; 16];
         let hashstate = HashState::new(key0, key1, key2);
 
-        let threshold:usize = 10000;
-        let rbc_start_id = threshold*config.id;
+        let threshold: usize = 10000;
+        let rbc_start_id = threshold * config.id;
         tokio::spawn(async move {
             let mut c = Context {
                 net_send: consensus_net,
@@ -111,16 +112,16 @@ impl Context {
                 sec_key_map: HashMap::default(),
                 hash_context: hashstate,
                 myid: config.id,
-                byz: byz,
+                byz: byz & (config.id < config.num_faults),
                 num_faults: config.num_faults,
                 cancel_handlers: HashMap::default(),
                 exit_rx: exit_rx,
                 inp_message: message,
-                
-                rbc_context:HashMap::default(),
+
+                rbc_context: HashMap::default(),
                 threshold: 10000,
 
-                max_id: rbc_start_id, 
+                max_id: rbc_start_id,
             };
 
             // Populate secret keys from config
@@ -140,8 +141,20 @@ impl Context {
     pub async fn broadcast(&mut self, protmsg: ProtMsg) {
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
-            if self.byz && replica % 2 == 0 {
-                // Simulates a crash fault
+            if self.byz && replica != self.myid {
+                // log::info!("Byzantine node {} sending a fake message to {}", self.myid, replica);
+                let mut byz_msg = protmsg.clone();
+
+                // Match to access inner message
+                match &mut byz_msg {
+                    ProtMsg::Init(msg, _) | ProtMsg::Echo(msg, _) | ProtMsg::Ready(msg, _) => {
+                        msg.shard = vec![0; msg.shard.len()];
+                    }
+                }
+
+                let wrapper_msg = WrapperMsg::new(byz_msg, self.myid, &sec_key.as_slice());
+                let cancel_handler = self.net_send.send(replica, wrapper_msg).await;
+                self.add_cancel_handler(cancel_handler);
                 continue;
             }
             if replica != self.myid {

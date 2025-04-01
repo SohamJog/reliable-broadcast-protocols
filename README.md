@@ -12,9 +12,7 @@ Initialize:
 ```bash
 cargo build --release
 mkdir logs
-cd testdata
-mkdir hyb_16
-./target/release/genconfig --NumNodes 16 --delay 10 --blocksize 100 --client_base_port 7000 --target testdata/hyb_16/ --payload 100 --out_type json --base_port 9000 --client_run_port 4000 --local true
+./scripts/create_testdata.sh <num_nodes>
 ```
 
 Test regular(Bracha's) RBC with 16 nodes:
@@ -44,4 +42,10 @@ Test multiple runs of ADD-RBC:
 - [ ] Simulate Byzantine Nodes in all protocols
 - [ ] Compare performance with 0, 1 Byzantine nodes with 4 nodes
 - [ ] Compare performance with 0, 5 Byzantine nodes with 16 nodes
-- [ ] Compare performance with 0, 10 Byzantine nodes with 32 nodes
+- [ ] Compare performance with 0, 13 Byzantine nodes with 40 nodes
+- [ ] Compare performance with 0, 21 Byzantine nodes with 64 nodes
+- [ ] Compare performance with 0, 29 Byzantine nodes with 88 nodes
+
+## Bugs
+
+- [ ] Syncer is currently sending more START messages than it should.

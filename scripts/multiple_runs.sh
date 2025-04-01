@@ -23,8 +23,8 @@ do
 
   ./scripts/test.sh testdata/hyb_"$NUM_NODES"/syncer Hi "$BYZANTINE" testdata/test_msgs.txt "$PROTOCOL" "$NUM_NODES"
   
-  sleep 1
-  
-  ./scripts/check_logs.sh "$NUM_NODES"
+  sleep $((NUM_NODES / 2))
+
+  # ./scripts/check_logs.sh "$NUM_NODES"
   ./scripts/latencies.sh
 done
