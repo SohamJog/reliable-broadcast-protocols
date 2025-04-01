@@ -53,7 +53,7 @@ impl Context {
         }
         rbc_context.fragment = shares[self.myid].clone();
 
-        log::info!("Decoding Shares: {:?}", shares);
+        // log::info!("Decoding Shares: {:?}", shares);
 
         // Echo to every node the encoding corresponding to the replica id
         let sec_key_map = self.sec_key_map.clone();

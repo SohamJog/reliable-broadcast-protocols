@@ -141,20 +141,36 @@ impl Syncer {
                             log::debug!("Node {} started the protocol",msg.sender);
                         },
                         SyncState::COMPLETED=>{
-                            log::debug!("Got COMPLETED message from node {} with value {:?}",msg.sender, msg.value.clone());
+                            log::info!("Got COMPLETED message from node {} with value {:?}",msg.sender, msg.value.clone());
 
                             // deserialize message
                             let rbc_msg: RBCSyncMsg = bincode::deserialize(&msg.value).expect("Unable to deserialize message received from node");
 
+
                             let latency_map = self.rbc_complete_times.entry(rbc_msg.id).or_default();
+                            let _len = latency_map.len();
                             latency_map.insert(msg.sender, SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap()
                             .as_millis());
 
+                        //   let old = latency_map.get(&msg.sender).cloned();
+                        //     let new = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+                        //     let newly_changed = old.map_or(true, |v| v != new);
+                        //     latency_map.insert(msg.sender, new);
+
+                            let _len_new = latency_map.len();
+
+                            // assert!(_len_new != _len, " Terminating... Sender: {}. latency_map: {:?}", msg.sender, latency_map);
+                            log::info!("ID: {}, Sender: {}, Latency map: {:?}", rbc_msg.id, msg.sender,  latency_map);
+
+
                             let value_set = self.rbc_comp_values.entry(rbc_msg.id).or_default();
                             value_set.insert(rbc_msg.msg.to_string());
                             if latency_map.len() == self.num_nodes{
+
+                                self.ready_for_broadcast = true;
+
                                 if self.rbc_start_times.get(&rbc_msg.id).is_none(){
                                     log::error!("Missing start time for RBC id {}", rbc_msg.id);
                                     continue;
@@ -192,31 +208,60 @@ impl Syncer {
                         if self.rbc_id >= self.broadcast_msgs.len(){
                             continue;
                         }
+                        self.ready_for_broadcast = false;
+
                         self.rbc_id += 1;
-                        let sync_rbc_msg = RBCSyncMsg{
-                            id: self.rbc_id,
-                            msg: self.broadcast_msgs.get(&self.rbc_id-1).unwrap().to_string(),
-                        };
-                        let binaryfy_val = bincode::serialize(&sync_rbc_msg).expect("Failed to serialize client message");
+                        // let sync_rbc_msg = RBCSyncMsg{
+                        //     id: self.rbc_id,
+                        //     msg: self.broadcast_msgs.get(&self.rbc_id-1).unwrap().to_string(),
+                        // };
+                        // let binaryfy_val = bincode::serialize(&sync_rbc_msg).expect("Failed to serialize client message");
                         // let cancel_handler:CancelHandler<Acknowledgement> = self.net_send.send(0, SyncMsg {
                         //     sender: self.num_nodes,
                         //     state: SyncState::START,
                         //     value:binaryfy_val
                         // }).await;
                         // self.add_cancel_handler(cancel_handler);
-                        self.broadcast(SyncMsg {
-                            sender: self.num_nodes,
-                            state: SyncState::START,
-                            value: binaryfy_val
-                        }).await;
 
 
-                        let start_time = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap()
-                        .as_millis();
+                        // self.broadcast(SyncMsg {
+                        //     sender: self.num_nodes,
+                        //     state: SyncState::START,
+                        //     value: binaryfy_val
+                        // }).await;
+                        // for replica in 0..self.num_nodes {
+                        for replica in 0..1 {
+                            let msg_id = replica*10000+self.rbc_id;
+                            let sync_rbc_msg = RBCSyncMsg{
+                                id: msg_id,
+                                msg: self.broadcast_msgs.get(&self.rbc_id-1).unwrap().to_string(),
+                            };
+                            let binaryfy_val = bincode::serialize(&sync_rbc_msg).expect("Failed to serialize client message");
+                            let cancel_handler:CancelHandler<Acknowledgement> = self.net_send.send(replica, SyncMsg {
+                                sender: self.num_nodes,
+                                state: SyncState::START,
+                                value:binaryfy_val
+                            }).await;
+                            self.add_cancel_handler(cancel_handler);
+                            log::info!("Sent START message to node {}", replica);
+                            let start_time = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis();
 
-                        self.rbc_start_times.insert(self.rbc_id, start_time);
+                            self.rbc_start_times.insert(msg_id, start_time);
+                        }
+                        // pub async fn broadcast(&mut self, sync_msg: SyncMsg) {
+                        //     for replica in 0..self.num_nodes {
+                        //         let cancel_handler: CancelHandler<Acknowledgement> =
+                        //             self.net_send.send(replica, sync_msg.clone()).await;
+                        //         self.add_cancel_handler(cancel_handler);
+                        //         log::info!("Sent {:?} message to node {}", sync_msg.state, replica);
+                        //     }
+                        // }
+
+
+
                     }
                 }
             }

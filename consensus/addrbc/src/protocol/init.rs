@@ -36,10 +36,10 @@ impl Context {
         //send echo
         self.start_echo(msg.content.clone(), instance_id).await;
 
-        log::info!(
-            "Received Init message {:?} from node {}.",
-            msg.content,
-            msg.origin,
-        );
+        // log::info!(
+        //     "Received Init message {:?} from node {}.",
+        //     msg.content,
+        //     msg.origin,
+        // );
     }
 }
