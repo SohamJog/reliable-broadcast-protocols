@@ -3,7 +3,7 @@ use reed_solomon_rs::fec::fec::*;
 use std::collections::{HashMap, HashSet};
 
 // Node cannot send ready before Echo
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Status {
     WAITING,
     INIT,

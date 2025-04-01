@@ -10,11 +10,14 @@ impl Context {
     pub async fn ready_self(&mut self, hash: Hash, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         let status = &rbc_context.status;
-        assert!(
-            *status == Status::READY,
-            "Ready Self: Status is not READY for instance id: {:?}",
-            instance_id
-        );
+        if *status != Status::READY {
+            return;
+        }
+        // assert!(
+        //     *status == Status::READY,
+        //     "Ready Self: Status is not READY for instance id: {:?}",
+        //     instance_id
+        // );
         let fragment = rbc_context.fragment.clone();
         let _ = rbc_context;
         let msg = ShareMsg {
@@ -29,11 +32,14 @@ impl Context {
         // Draft a message
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         let status = &rbc_context.status;
-        assert!(
-            *status == Status::READY,
-            "Start Ready: Status is not READY for instance id: {:?}",
-            instance_id
-        );
+        if *status != Status::READY {
+            return;
+        }
+        // assert!(
+        //     *status == Status::READY,
+        //     "Start Ready: Status is not READY for instance id: {:?}",
+        //     instance_id
+        // );
         let fragment = rbc_context.fragment.clone();
         let _ = rbc_context;
         let msg = ShareMsg {
@@ -66,7 +72,6 @@ impl Context {
     }
 
     pub async fn handle_ready(self: &mut Context, msg: ShareMsg, instance_id: usize) {
-        // assert that message is non empty
         assert!(
             msg.share.data.len() != 0,
             "Received empty share for instance id: {:?}",

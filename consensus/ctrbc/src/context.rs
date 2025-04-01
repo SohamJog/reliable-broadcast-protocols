@@ -34,7 +34,7 @@ pub struct Context {
     pub myid: usize,
     pub num_faults: usize,
     pub inp_message: Vec<u8>,
-    byz: bool,
+    pub byz: bool,
 
     /// Secret Key map
     pub sec_key_map: HashMap<Replica, Vec<u8>>,
@@ -142,6 +142,7 @@ impl Context {
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
             if self.byz && replica != self.myid {
+                // log::info!("Byzantine node {} sending a fake message to {}", self.myid, replica);
                 let mut byz_msg = protmsg.clone();
 
                 // Match to access inner message

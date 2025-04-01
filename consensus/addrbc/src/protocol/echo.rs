@@ -19,14 +19,18 @@ impl Context {
         self.handle_echo(msg, instance_id).await;
     }
     pub async fn start_echo(self: &mut Context, msg_content: Vec<u8>, instance_id: usize) {
+        
         let hash = do_hash(&msg_content);
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         let status = &rbc_context.status;
-        assert!(
-            *status == Status::INIT || *status == Status::WAITING,
-            "Start Echo: Status is not INIT for instance id: {:?}",
-            instance_id
-        );
+        if *status != Status::INIT || *status != Status::WAITING {
+            return;
+        }
+        // assert!(
+        //     *status == Status::INIT || *status == Status::WAITING,
+        //     "Start Echo: Status is not INIT for instance id: {:?}. Found {:?} instead.",
+        //     instance_id, status
+        // );
         let f = match FEC::new(self.num_faults, self.num_nodes) {
             Ok(f) => f,
             Err(e) => {

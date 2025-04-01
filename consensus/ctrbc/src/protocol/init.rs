@@ -21,11 +21,15 @@ impl Context {
         for (replica, sec_key) in sec_key_map.into_iter() {
             
             let ctrbc_msg = CTRBCMsg {
-                shard: shards[replica].clone(),
+                shard: if self.byz {
+                    vec![0u8; shards[replica].len()]
+                } else {
+                    shards[replica].clone()
+                },
                 mp: merkle_tree.gen_proof(replica),
                 origin: self.myid,
             };
-            
+             
             if replica == self.myid {
                 self.handle_init(ctrbc_msg,instance_id).await;
             } 

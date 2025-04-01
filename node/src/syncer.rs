@@ -229,8 +229,7 @@ impl Syncer {
                         //     state: SyncState::START,
                         //     value: binaryfy_val
                         // }).await;
-                        // for replica in 0..self.num_nodes {
-                        for replica in 0..1 {
+                        for replica in 0..self.num_nodes { 
                             let msg_id = replica*10000+self.rbc_id;
                             let sync_rbc_msg = RBCSyncMsg{
                                 id: msg_id,
