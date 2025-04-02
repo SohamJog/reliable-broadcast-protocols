@@ -1,5 +1,5 @@
 # add-rbc
-A rust implementation of Reliable Broadcast based on Asynchronous Data Dissemination (ADD) as described [here](https://eprint.iacr.org/2021/777.pdf)
+A Rust implementation of Reliable Broadcast based on Asynchronous Data Dissemination (ADD) as described [here](https://eprint.iacr.org/2021/777.pdf)
 
 ---
 ## Directory Structure
@@ -35,17 +35,32 @@ Test multiple runs of ADD-RBC:
 ```bash
 ./scripts/multiple_runs.sh <num_iterations> [<num_nodes> <protocol> <byzantine>]
 ```
+
+---
+
+## Benchmarks
+
+To run the benchmarks, run the following script:
+```bash
+./scripts/run_benchmarks.sh
+```
+This will run 4 experiments on ADD-RBC, CTRBC, Bracha's RBC on 4, 16, 40, 64, and 88 nodes, with and without (n-1)/3 byzantine nodes. It will then store all the results in `/bench_logs`
+
+To aggregate the data from benchmarks and generate boxplots and histograms:
+```bash
+ python scripts/aggregate_and_plot.py
+```
+This will store all the graphs in `results`
+
 ---
 
 ## Experiments
-- [x] ADD RBC Works
-- [ ] Simulate Byzantine Nodes in all protocols
-- [ ] Compare performance with 0, 1 Byzantine nodes with 4 nodes
-- [ ] Compare performance with 0, 5 Byzantine nodes with 16 nodes
-- [ ] Compare performance with 0, 13 Byzantine nodes with 40 nodes
-- [ ] Compare performance with 0, 21 Byzantine nodes with 64 nodes
-- [ ] Compare performance with 0, 29 Byzantine nodes with 88 nodes
+We ran 4 experiments on ADD-RBC, CTRBC, Bracha's RBC on 4, 16, 40, 64, and 88 nodes, with and without (n-1)/3 byzantine nodes.
 
-## Bugs
+We found out that ADD RBC is significantly faster on environments without Byzantine nodes, while CTRBC is relatively fastest in environments with Byzantine nodes. 
+Here is an example comparing all the protocols with and without byzantine nodes on n = 88
+![latency_boxplot_88](https://github.com/user-attachments/assets/6716a504-3bb9-4add-bfd7-a15c5905084d)
 
-- [ ] Syncer is currently sending more START messages than it should.
+
+Final Results:
+TODO
