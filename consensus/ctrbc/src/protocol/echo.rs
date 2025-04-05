@@ -23,8 +23,9 @@ impl Context {
         // check if verifies
         if !msg.verify_mr_proof(&self.hash_context) {
             log::error!(
-                "Invalid Merkle Proof sent by node {}, abandoning RBC",
-                msg.origin
+                "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
+                msg.origin,
+                instance_id
             );
             return;
         }

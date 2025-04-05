@@ -51,6 +51,8 @@ for node_count in sorted(aggregated_data.keys()):
         mean = data.mean()
         median = np.median(data)
         std = data.std()
+        print(f"{config_key} @ {node_count} nodes -> Mean: {mean:.2f} ms, Median: {median:.2f} ms, Std Dev: {std:.2f} ms")
+
 
         # --- Histogram with normal curve ---
         plt.figure(figsize=(12, 6))
@@ -70,15 +72,27 @@ for node_count in sorted(aggregated_data.keys()):
         plt.savefig(f"latency_hist_{config_key}_{node_count}.png")
         plt.close()
 
+  # Define a fixed, consistent order for config keys
+    ordered_config_keys = [
+        "rbc_false", "rbc_true",
+        "ctrbc_false", "ctrbc_true",
+        "addrbc_false", "addrbc_true",
+    ]
+
     # --- Box plot comparing configs for this node count ---
     plt.figure(figsize=(12, 6))
     data_for_box = []
     labels = []
 
-    for config_key, msg_dict in aggregated_data[node_count].items():
+    for config_key in ordered_config_keys:
+        msg_dict = aggregated_data[node_count].get(config_key)
+        if not msg_dict:
+            continue
+
         all_latencies = []
-        for msg_id, lat_list in msg_dict.items():
+        for lat_list in msg_dict.values():
             all_latencies.extend(lat_list)
+
         if all_latencies:
             data_for_box.append(all_latencies)
             labels.append(config_key)
@@ -91,3 +105,4 @@ for node_count in sorted(aggregated_data.keys()):
         plt.tight_layout()
         plt.savefig(f"latency_boxplot_{node_count}.png")
         plt.close()
+    

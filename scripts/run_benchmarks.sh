@@ -5,7 +5,8 @@
 
 NUM_ITERATIONS=4
 NODE_COUNTS=(4 16 40 64 88)
-PROTOCOLS=(rbc ctrbc addrbc)
+PROTOCOLS=( ctrbc)
+# PROTOCOLS=(rbc ctrbc addrbc)
 BYZ_OPTIONS=(false true)
 
 LOG_DIR="bench_logs"
