@@ -14,6 +14,7 @@ class LocalBench:
     BASE_PORT = 9000
     cl_bport = 10000
     def __init__(self, bench_parameters_dict, node_parameters_dict):
+
         try:
             self.bench_parameters = BenchParameters(bench_parameters_dict)
             self.node_parameters = NodeParameters(node_parameters_dict)
@@ -85,59 +86,23 @@ class LocalBench:
             #ip_file.print("ip_file")
 
             # Generate the configuration files for HashRand
-            cmd = CommandMaker.generate_config_files(self.BASE_PORT,self.cl_bport,nodes)
+            cmd = CommandMaker.generate_config_files(self.BASE_PORT,self.cl_bport,9500,nodes)
             self._background_run(cmd,"err.log")
 
-            # Generate the ip file for HashRand
-
-            #self.node_parameters.print(PathMaker.parameters_file())
-
-            # Run the clients (they will wait for the nodes to be ready).
-            # workers_addresses = committee.workers_addresses(self.faults)
-            # print(workers_addresses)
-            # rate_share = ceil(rate / committee.workers())
-            # for i, addresses in enumerate(workers_addresses):
-            #     for (id, address) in addresses:
-            #         cmd = CommandMaker.run_client(
-            #             address,
-            #             self.tx_size,
-            #             rate_share,
-            #             [x for y in workers_addresses for _, x in y]
-            #         )
-            #         log_file = PathMaker.client_log_file(i, id)
-            #         self._background_run(cmd, log_file)
 
             # # Run the primaries (except the faulty ones).
             for i in range(nodes):
                 cmd = CommandMaker.run_primary(
-                    PathMaker.key_file(i),
-                    debug=debug
+                PathMaker.key_file(i),
+                self.protocol,
+                self.bfile,
+                self.byzantine,
+                debug=debug
                 )
                 log_file = PathMaker.primary_log_file(i)
                 self._background_run(cmd, log_file)
 
-            # # Run the workers (except the faulty ones).
-            # for i, addresses in enumerate(workers_addresses):
-            #     for (id, address) in addresses:
-            #         cmd = CommandMaker.run_worker(
-            #             PathMaker.key_file(i),
-            #             PathMaker.committee_file(),
-            #             PathMaker.db_path(i, id),
-            #             PathMaker.parameters_file(),
-            #             id,  # The worker's id.
-            #             debug=debug
-            #         )
-            #         log_file = PathMaker.worker_log_file(i, id)
-            #         self._background_run(cmd, log_file)
-
-            # # Wait for all transactions to be processed.
-            # Print.info(f'Running benchmark ({self.duration} sec)...')
-            # sleep(self.duration)
-            # self._kill_nodes()
-
-            # # Parse logs and return the parser.
-            # Print.info('Parsing logs...')
-            # return LogParser.process(PathMaker.logs_path(), faults=self.faults)
+          
 
         except (subprocess.SubprocessError, ParseError) as e:
             self._kill_nodes()
