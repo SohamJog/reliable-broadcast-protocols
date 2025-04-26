@@ -60,7 +60,8 @@ We ran 4 experiments on ADD-RBC, CTRBC, Bracha's RBC on 4, 16, 40, 64, and 88 no
 We found out that ADD RBC is significantly faster on environments without Byzantine nodes, while CTRBC is relatively fastest in environments with Byzantine nodes. 
 Here is an example comparing all the protocols with and without byzantine nodes on n = 88
 
-![_latency_boxplot_88](https://github.com/user-attachments/assets/cba86504-1760-44ae-bf0e-a449f4df7be7)
+![latency_boxplot_88](https://github.com/user-attachments/assets/a90c72c6-c9e1-4d39-ac95-431b113a410e)
+
 
 
 Final Results:
