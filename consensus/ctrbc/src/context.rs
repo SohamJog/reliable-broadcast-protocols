@@ -22,6 +22,7 @@ use types::{Replica, SyncMsg, SyncState, WrapperMsg};
 use super::ProtMsg;
 use super::{Handler, RBCState, SyncHandler};
 use crypto::aes_hash::HashState;
+use tokio::time::{sleep, Duration};
 
 pub struct Context {
     /// Networking context
@@ -140,6 +141,9 @@ impl Context {
 
     pub async fn broadcast(&mut self, protmsg: ProtMsg) {
         let sec_key_map = self.sec_key_map.clone();
+        // Sleep to simulate network delay
+        sleep(Duration::from_millis(50)).await;
+
         for (replica, sec_key) in sec_key_map.into_iter() {
             if self.byz && replica != self.myid {
                 // log::info!("Byzantine node {} sending a fake message to {}", self.myid, replica);
@@ -201,7 +205,7 @@ impl Context {
                 },
                 msg = self.net_recv.recv() => {
                     // Received messages are processed here
-                    log::trace!("Got a consensus message from the network: {:?}", msg);
+                    // log::trace!("Got a consensus message from the network: {:?}", msg);
                     let msg = msg.ok_or_else(||
                         anyhow!("Networking layer has closed")
                     )?;

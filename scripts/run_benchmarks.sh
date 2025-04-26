@@ -4,12 +4,13 @@
 # Ensure: ./scripts/multiple_runs.sh <num_iterations> <num_nodes> <protocol> <byzantine>
 
 NUM_ITERATIONS=4
-NODE_COUNTS=(4 16 40 64 88)
-PROTOCOLS=( ctrbc)
-# PROTOCOLS=(rbc ctrbc addrbc)
+# NODE_COUNTS=(4 )
+NODE_COUNTS=(16 40)
+# PROTOCOLS=( rbc)
+PROTOCOLS=(rbc addrbc ctrbc)
 BYZ_OPTIONS=(false true)
 
-LOG_DIR="bench_logs"
+LOG_DIR="bench_msg_sizes"
 mkdir -p $LOG_DIR
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

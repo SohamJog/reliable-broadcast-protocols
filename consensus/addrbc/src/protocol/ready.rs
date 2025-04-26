@@ -4,6 +4,7 @@ use crypto::hash::Hash;
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::FEC;
 use reed_solomon_rs::fec::fec::*;
+use tokio::time::{sleep, Duration};
 use types::WrapperMsg;
 
 impl Context {
@@ -57,6 +58,8 @@ impl Context {
         // Wrap the message in a type
         let protocol_msg = ProtMsg::Ready(msg, instance_id);
 
+        // Sleep to simulate network delay
+        sleep(Duration::from_millis(50)).await;
         // Echo to every node the encoding corresponding to the replica id
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
@@ -64,6 +67,7 @@ impl Context {
                 self.ready_self(hash, instance_id).await;
                 continue;
             }
+
             let wrapper_msg = WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
             let cancel_handler: CancelHandler<Acknowledgement> =
                 self.net_send.send(replica, wrapper_msg).await;
@@ -86,8 +90,7 @@ impl Context {
             rbc_context.status = Status::TERMINATED;
             let _ = rbc_context;
             log::info!(
-                "Terminating with: {:?} for instance id: {:?}",
-                output_message,
+                "Terminating for instance id: {:?}",               
                 instance_id
             );
             self.terminate(output_message).await;
@@ -138,8 +141,7 @@ impl Context {
                         Ok(data) => {
                             if data.len() != 0 {
                                 log::info!(
-                                    "Outputting: {:?} for instance id: {:?}",
-                                    data,
+                                    "Outputting: for instance id: {:?}",
                                     instance_id
                                 );
                                 rbc_context.output_message = data;

@@ -15,6 +15,8 @@ use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver},
     oneshot,
 };
+use tokio::time::{sleep, Duration};
+
 // use tokio_util::time::DelayQueue;
 use types::{
     SyncMsg, SyncState, {ProtMsg, Replica, WrapperMsg},
@@ -119,7 +121,11 @@ impl Context {
 
     pub async fn broadcast(&mut self, protmsg: ProtMsg) {
         let sec_key_map = self.sec_key_map.clone();
+         // Sleep to simulate network delay
+        sleep(Duration::from_millis(50)).await;
+
         for (replica, sec_key) in sec_key_map.into_iter() {
+       
             if self.byz && replica != self.myid {
                 let mut byz_msg = protmsg.clone();
 
@@ -184,7 +190,7 @@ impl Context {
                 },
                 msg = self.net_recv.recv() => {
                     // Received messages are processed here
-                    log::debug!("Got a consensus message from the network: {:?}", msg);
+                    // log::debug!("Got a consensus message from the network: {:?}", msg);
                     let msg = msg.ok_or_else(||
                         anyhow!("Networking layer has closed")
                     )?;

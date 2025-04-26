@@ -8,14 +8,14 @@ use types::WrapperMsg;
 use crate::Context;
 use crate::{CTRBCMsg, ProtMsg};
 use network::{plaintcp::CancelHandler, Acknowledgement};
+use tokio::time::{sleep, Duration};
 
 impl Context {
     // Dealer sending message to everybody
     pub async fn start_init(self: &mut Context, msg: Vec<u8>, instance_id: usize) {
         log::info!(
-            "Starting CTRBC Init for instance id {} with msg {:?}",
+            "Starting CTRBC Init for instance id {} ",
             instance_id,
-            msg
         );
         let shards = get_shards(msg, self.num_faults + 1, 2 * self.num_faults);
         let zero_shards: Vec<Vec<u8>> = shards.iter().map(|shard| vec![0u8; shard.len()]).collect();
@@ -24,6 +24,8 @@ impl Context {
         let zero_merkle_tree = construct_merkle_tree(zero_shards.clone(), &self.hash_context);
 
         let sec_key_map = self.sec_key_map.clone();
+        // Sleep to simulate network delay
+        sleep(Duration::from_millis(50)).await;
         for (replica, sec_key) in sec_key_map.into_iter() {
             let ctrbc_msg = CTRBCMsg {
                 shard: if self.byz {
@@ -65,11 +67,11 @@ impl Context {
             return;
         }
 
-        log::debug!(
-            "Received Init message {:?} from node {}.",
-            msg.shard,
-            msg.origin,
-        );
+        // log::debug!(
+        //     "Received Init message {:?} from node {}.",
+        //     msg.shard,
+        //     msg.origin,
+        // );
 
         let ctrbc_msg = CTRBCMsg {
             shard: msg.shard,

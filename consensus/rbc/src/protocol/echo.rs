@@ -37,12 +37,12 @@ impl Context {
                 .entry(msg.content.clone())
                 .or_default() += 1;
 
-            log::info!(
-                "Received Echo message {:?} from node {}, instance id: {}",
-                msg.content,
-                msg.origin,
-                instance_id,
-            );
+            // log::info!(
+            //     "Received Echo message {:?} from node {}, instance id: {}",
+            //     msg.content,
+            //     msg.origin,
+            //     instance_id,
+            // );
 
             // let count = self.received_echo_count.get(&msg.content).unwrap();
             let mut mode_content: Option<Vec<u8>> = None;
@@ -58,12 +58,12 @@ impl Context {
             // Check if we've received 2t + 1 echoes for this message
             if max_count == 2 * self.num_faults + 1 && !rbc_context.first_ready {
                 if let Some(hash) = mode_content {
-                    log::info!(
-                        "On 2t + 1 echos, sending READY with content {:?}. t = {}, instance id: {}",
-                        hash,
-                        self.num_faults,
-                        instance_id,
-                    );
+                    // log::info!(
+                    //     "On 2t + 1 echos, sending READY with content {:?}. t = {}, instance id: {}",
+                    //     hash,
+                    //     self.num_faults,
+                    //     instance_id,
+                    // );
                     rbc_context.first_ready = true;
 
                     self.start_ready(msg.content.clone(), instance_id).await;

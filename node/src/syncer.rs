@@ -125,7 +125,7 @@ impl Syncer {
                 msg = self.rx_net.recv() => {
                     // Received a protocol message
                     // Received a protocol message
-                    log::trace!("Got a message from the server: {:?}", msg);
+                    // log::trace!("Got a message from the server: {:?}", msg);
                     let msg = msg.ok_or_else(||
                         anyhow!("Networking layer has closed")
                     )?;
@@ -141,7 +141,7 @@ impl Syncer {
                             log::debug!("Node {} started the protocol",msg.sender);
                         },
                         SyncState::COMPLETED=>{
-                            log::info!("Got COMPLETED message from node {} with value {:?}",msg.sender, msg.value.clone());
+                            // log::info!("Got COMPLETED message from node {} with value {:?}",msg.sender, msg.value.clone());
 
                             // deserialize message
                             let rbc_msg: RBCSyncMsg = bincode::deserialize(&msg.value).expect("Unable to deserialize message received from node");
@@ -162,7 +162,7 @@ impl Syncer {
                             let _len_new = latency_map.len();
 
                             // assert!(_len_new != _len, " Terminating... Sender: {}. latency_map: {:?}", msg.sender, latency_map);
-                            log::info!("ID: {}, Sender: {}, Latency map: {:?}", rbc_msg.id, msg.sender,  latency_map);
+                            // log::info!("ID: {}, Sender: {}, Latency map: {:?}", rbc_msg.id, msg.sender,  latency_map);
 
 
                             let value_set = self.rbc_comp_values.entry(rbc_msg.id).or_default();
@@ -192,7 +192,7 @@ impl Syncer {
                                     log::info!("Received multiple values from nodes, broadcast failed, rerun test {:?}",value_set);
                                 }
                                 else{
-                                    log::info!("All n nodes completed the protocol for ID: {} with latency {:?} and value {:?} ", rbc_msg.id,vec_times,value_set);
+                                    log::info!("All n nodes completed the protocol for ID: {} with latency {:?} ", rbc_msg.id,vec_times);
                                 }
                                 if self.rbc_id >= self.num_nodes * self.broadcast_msgs.len(){
                                     self.broadcast(SyncMsg { sender: self.num_nodes, state: SyncState::STOP, value:"".to_string().into_bytes()}).await;

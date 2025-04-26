@@ -8,7 +8,6 @@ use crate::Context;
 impl Context {
     // TODO: handle ready
     pub async fn handle_ready(self: &mut Context, msg: CTRBCMsg, instance_id:usize){
-        log::trace!("Received {:?} as ready", msg);
 
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
 

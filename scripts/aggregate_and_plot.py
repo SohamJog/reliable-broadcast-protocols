@@ -9,7 +9,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 # Directory containing benchmark logs
-LOG_DIR = "bench_logs"
+LOG_DIR = "bench_logs_local_delay"
 
 # Data structure: {node_count: {protocol_byz: {msg_id: [latencies]}}}
 aggregated_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))

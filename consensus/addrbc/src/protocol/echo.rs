@@ -9,6 +9,8 @@ use types::WrapperMsg;
 
 use crate::Status;
 use network::{plaintcp::CancelHandler, Acknowledgement};
+use tokio::time::{sleep, Duration};
+
 impl Context {
     pub async fn echo_self(&mut self, hash: Hash, share: Share, instance_id: usize) {
         let msg = ShareMsg {
@@ -19,13 +21,12 @@ impl Context {
         self.handle_echo(msg, instance_id).await;
     }
     pub async fn start_echo(self: &mut Context, msg_content: Vec<u8>, instance_id: usize) {
-        
         let hash = do_hash(&msg_content);
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         let status = &rbc_context.status;
-        if *status != Status::INIT || *status != Status::WAITING {
-            return;
-        }
+        // if *status != Status::INIT || *status != Status::WAITING {
+        //     return;
+        // }
         // assert!(
         //     *status == Status::INIT || *status == Status::WAITING,
         //     "Start Echo: Status is not INIT for instance id: {:?}. Found {:?} instead.",
@@ -61,12 +62,16 @@ impl Context {
 
         // Echo to every node the encoding corresponding to the replica id
         let sec_key_map = self.sec_key_map.clone();
+        // Sleep to simulate network delay
+        // log::info!("Starting echo for: {:?}", instance_id,);
+        sleep(Duration::from_millis(50)).await;
         for (replica, sec_key) in sec_key_map.into_iter() {
             if replica == self.myid {
                 self.echo_self(hash, shares[self.myid].clone(), instance_id)
                     .await;
                 continue;
             }
+
             let msg = ShareMsg {
                 share: if self.byz {
                     Share {
@@ -99,6 +104,7 @@ impl Context {
             }
             // let rbc_context = self.rbc_context.entry(instance_id).or_default();
         }
+        // log::info!("Broadcasted echo for: {:?}", instance_id,);
     }
 
     pub async fn handle_echo(self: &mut Context, msg: ShareMsg, instance_id: usize) {
