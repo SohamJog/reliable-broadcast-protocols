@@ -257,17 +257,15 @@ class Bench:
                 print('Running syncer')
                 cmd = CommandMaker.run_syncer(
                     PathMaker.key_file(i),
-                    batches,
-                    per_batch
                 )
                 print(cmd)
                 log_file = PathMaker.syncer_log_file()
                 self._background_run(ip, cmd, log_file)
                 cmd = CommandMaker.run_primary(
                     PathMaker.key_file(i),
-                    protocol,
-                    bfile,
-                    byzantine
+                    self.protocol,
+                    self.bfile,
+                    self.byzantine
                 )
  
             unzip_cmd = CommandMaker.unzip_tkeys('data.tar.gz')
@@ -301,16 +299,15 @@ class Bench:
                 print('Running syncer')
                 cmd = CommandMaker.run_syncer(
                     PathMaker.key_file(i),
-                    batches,
-                    per_batch
                 )
                 print(cmd)
                 log_file = PathMaker.syncer_log_file()
                 self._background_run(ip, cmd, log_file)
             cmd = CommandMaker.run_primary(
                 PathMaker.key_file(i),
-                batches,
-                per_batch
+                self.protocol,
+                self.bfile,
+                self.byzantine
             )
             log_file = PathMaker.primary_log_file(i)
             self._background_run(ip, cmd, log_file)
@@ -334,8 +331,6 @@ class Bench:
                PathMaker.client_log_file(i, 0), 
                local=PathMaker.client_log_file(i, 0)
             )
-
-     
 
         # Parse logs and return the parser.
         Print.info('Parsing logs and computing performance...')
