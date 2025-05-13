@@ -64,7 +64,7 @@ impl Context {
         let sec_key_map = self.sec_key_map.clone();
         // Sleep to simulate network delay
         // log::info!("Starting echo for: {:?}", instance_id,);
-        sleep(Duration::from_millis(50)).await;
+        // sleep(Duration::from_millis(50)).await;
         for (replica, sec_key) in sec_key_map.into_iter() {
             if replica == self.myid {
                 self.echo_self(hash, shares[self.myid].clone(), instance_id)

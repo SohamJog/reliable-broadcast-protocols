@@ -59,7 +59,7 @@ impl Context {
         let protocol_msg = ProtMsg::Ready(msg, instance_id);
 
         // Sleep to simulate network delay
-        sleep(Duration::from_millis(50)).await;
+        // sleep(Duration::from_millis(50)).await;
         // Echo to every node the encoding corresponding to the replica id
         let sec_key_map = self.sec_key_map.clone();
         for (replica, sec_key) in sec_key_map.into_iter() {
