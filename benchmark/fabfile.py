@@ -57,6 +57,8 @@ def log_v(ctx, debug=True):
         Print.error(e)
 
 
+# The parameter nodes determines how many instances to create in each AWS region. That is, if you specified 5 AWS regions as in the example of step 3, setting nodes=2 will creates a total of 16 machines:
+
 @task
 def create(ctx, nodes=2):
     ''' Create a testbed '''

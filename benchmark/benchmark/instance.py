@@ -38,6 +38,7 @@ class InstanceManager:
         # Possible states are: 'pending', 'running', 'shutting-down',
         # 'terminated', 'stopping', and 'stopped'.
         ids, ips = defaultdict(list), defaultdict(list)
+      
         for region, client in self.clients.items():
             r = client.describe_instances(
                 Filters=[
@@ -56,6 +57,10 @@ class InstanceManager:
                 ids[region] += [x['InstanceId']]
                 if 'PublicIpAddress' in x:
                     ips[region] += [x['PublicIpAddress']]
+        
+        print("ids: ", ids)
+        print("ips: ", ips)
+        print("self.clients: ", self.clients)
         return ids, ips
 
     def _wait(self, state):
@@ -105,15 +110,29 @@ class InstanceManager:
             ]
         )
 
+    # def _get_ami(self, client):
+    #     # The AMI changes with regions.
+    #     response = client.describe_images(
+    #         Filters=[{
+    #             'Name': 'description',
+    #             'Values': ['Canonical, Ubuntu, 20.04 LTS, amd64 focal image build on 2023-03-28']
+    #         }]
+    #     )
+    #     return response['Images'][0]['ImageId']
     def _get_ami(self, client):
-        # The AMI changes with regions.
-        response = client.describe_images(
-            Filters=[{
-                'Name': 'description',
-                'Values': ['Canonical, Ubuntu, 20.04 LTS, amd64 focal image build on 2023-03-28']
-            }]
-        )
-        return response['Images'][0]['ImageId']
+        region = client.meta.region_name
+        ami_map = {
+            'us-east-1': 'ami-065aeacd44e98d9ac',
+            'us-east-2': 'ami-08fa292fbe9b8d198',
+            'us-west-1': 'ami-0c835bde159a0d0ec',
+            'us-west-2': 'ami-010fc6854b20fbff7',
+            'ca-central-1': 'ami-011b24bd7f3a03f24',
+            'eu-west-1': 'ami-0182a7ec1f4364ac4',
+            'ap-southeast-1': 'ami-084dfd75f2c8744ed',
+            'ap-northeast-1': 'ami-0f6963e3a0e928610',
+        }
+        return ami_map[region]
+
 
     def create_instances(self, instances):
         assert isinstance(instances, int) and instances > 0
@@ -158,6 +177,9 @@ class InstanceManager:
                         }
                     }],
                 )
+                # instances = response.get('Instances', [])
+                # if not instances:
+                #     raise BenchError('Failed to create instances', 'No instances created')
 
             # Wait for the instances to boot.
             Print.info('Waiting for all instances to boot...')
@@ -225,8 +247,10 @@ class InstanceManager:
         #         return [x for y in json_data.values() for x in y]        
         #     else:
         #         return json_data
+         # Possible states are: 'pending', 'running', 'shutting-down',
+        # 'terminated', 'stopping', and 'stopped'.
         try:
-           _, ips = self._get(['pending', 'running'])
+           _, ips = self._get(['pending', 'running', 'stopping', 'stopped'])
            return [x for y in ips.values() for x in y] if flat else ips
         except ClientError as e:
            raise BenchError('Failed to gather instances IPs', AWSError(e))
