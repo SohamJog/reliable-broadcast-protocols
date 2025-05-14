@@ -119,9 +119,9 @@ def remote(ctx, debug=False):
     try:
         Bench(ctx).run(
             DEFAULT_BENCH_PARAMS, DEFAULT_NODE_PARAMS,
-            DEFAULT_BENCH_PARAMS['protocol'],
-            DEFAULT_BENCH_PARAMS['bfile'],
-            DEFAULT_BENCH_PARAMS['byzantine'],
+            # DEFAULT_BENCH_PARAMS['protocol'],
+            # DEFAULT_BENCH_PARAMS['bfile'],
+            # DEFAULT_BENCH_PARAMS['byzantine'],
             debug
         )
     except BenchError as e:
@@ -175,9 +175,9 @@ def logs(ctx):
     try:
         print(Bench(ctx).pull_logs(
             DEFAULT_BENCH_PARAMS, DEFAULT_NODE_PARAMS,
-            DEFAULT_BENCH_PARAMS['protocol'],
-            DEFAULT_BENCH_PARAMS['bfile'],
-            DEFAULT_BENCH_PARAMS['byzantine']
+            # DEFAULT_BENCH_PARAMS['protocol'],
+            # DEFAULT_BENCH_PARAMS['bfile'],
+            # DEFAULT_BENCH_PARAMS['byzantine']
         ))
     except ParseError as e:
         Print.error(BenchError('Failed to parse logs', e))

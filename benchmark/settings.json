@@ -1,7 +1,7 @@
 {
     "key": {
-        "name": "aws",
-        "path": "/Users/sohamjog/Desktop/aws"
+        "name": "add_rbc_benchmark",
+        "path": "/Users/sohamjog/Desktop/add_rbc_benchmark.pem"
     },
     "port": 5000,
     "client_base_port": 6000,

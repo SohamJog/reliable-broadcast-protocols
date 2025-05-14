@@ -122,14 +122,14 @@ class InstanceManager:
     def _get_ami(self, client):
         region = client.meta.region_name
         ami_map = {
-            'us-east-1': 'ami-065aeacd44e98d9ac',
-            'us-east-2': 'ami-08fa292fbe9b8d198',
-            'us-west-1': 'ami-0c835bde159a0d0ec',
-            'us-west-2': 'ami-010fc6854b20fbff7',
-            'ca-central-1': 'ami-011b24bd7f3a03f24',
-            'eu-west-1': 'ami-0182a7ec1f4364ac4',
-            'ap-southeast-1': 'ami-084dfd75f2c8744ed',
-            'ap-northeast-1': 'ami-0f6963e3a0e928610',
+            'us-east-1': 'ami-097947612b141c026',
+            'us-east-2': 'ami-0133f9d4af72da4d0',
+            'us-west-1': 'ami-08be293cd057c7a9d',
+            'us-west-2': 'ami-08a0cbdcdcbc08448',
+            'ca-central-1': 'ami-0e769f5a7e05b434d',
+            'eu-west-1': 'ami-0615f8fb30852b961',
+            'ap-southeast-1': 'ami-05c261f9eb9de6a80',
+            'ap-northeast-1': 'ami-07bff4033fbfe2317',
         }
         return ami_map[region]
 
@@ -263,7 +263,7 @@ class InstanceManager:
             text += f'\n Region: {region.upper()}\n'
             for i, ip in enumerate(ips):
                 new_line = '\n' if (i+1) % 6 == 0 else ''
-                text += f'{new_line} {i}\tssh -i {key} ubuntu@{ip}\n'
+                text += f'{new_line} {i}\tssh -i {key} ec2-user@{ip}\n'
         print(
             '\n'
             '----------------------------------------------------------------\n'

@@ -55,35 +55,31 @@ class Bench:
     def install(self):
         Print.info('Installing rust and cloning the repo...')
         cmd = [
-            'sudo apt-get update',
-            'sudo apt-get -y upgrade',
-            'sudo apt-get -y autoremove',
-
-            # The following dependencies prevent the error: [error: linker `cc` not found].
-            'sudo apt-get -y install build-essential',
-            'sudo apt-get -y install cmake',
-            'sudo apt-get -y install libgmp-dev',
-
-            # Install rust (non-interactive).
+            'if command -v apt-get &>/dev/null; then '
+                'sudo apt-get update && '
+                'sudo apt-get -y upgrade && '
+                'sudo apt-get -y autoremove && '
+                'sudo apt-get -y install build-essential cmake libgmp-dev clang tmux; '
+            'else '
+                'sudo yum update -y && '
+                'sudo yum install -y gcc gcc-c++ make cmake git curl clang gmp-devel tmux; '
+            'fi',
             'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y',
             'source $HOME/.cargo/env',
             'rustup install 1.83.0',
             'rustup override set 1.83.0',
-
-            # This is missing from the Rocksdb installer (needed for Rocksdb).
-            'sudo apt-get install -y clang',
-
-            # Clone the repo.
             f'(git clone {self.settings.repo_url} || (cd {self.settings.repo_name} ; git pull))'
         ]
+ 
         hosts = self.manager.hosts(flat=True)
         try:
-            g = Group(*hosts, user='ubuntu', connect_kwargs=self.connect)
+            g = Group(*hosts, user='ec2-user', connect_kwargs=self.connect)
             g.run(' && '.join(cmd), hide=True)
             Print.heading(f'Initialized testbed of {len(hosts)} nodes')
         except (GroupException, ExecutionError) as e:
             e = FabricError(e) if isinstance(e, GroupException) else e
             raise BenchError('Failed to install repo on testbed', e)
+ 
 
     def kill(self, hosts=[], delete_logs=False):
         assert isinstance(hosts, list)
@@ -92,7 +88,7 @@ class Bench:
         delete_logs = CommandMaker.clean_logs() if delete_logs else 'true'
         cmd = [delete_logs, f'({CommandMaker.kill()} || true)']
         try:
-            g = Group(*hosts, user='ubuntu', connect_kwargs=self.connect)
+            g = Group(*hosts, user='ec2-user', connect_kwargs=self.connect)
             g.run(' && '.join(cmd), hide=True)
         except GroupException as e:
             raise BenchError('Failed to kill nodes', FabricError(e))
@@ -135,8 +131,10 @@ class Bench:
 
     def _background_run(self, host, command, log_file):
         name = splitext(basename(log_file))[0]
-        cmd = f'tmux new -d -s "{name}" "{command} |& tee {log_file}"'
-        c = Connection(host, user='ubuntu', connect_kwargs=self.connect)
+        # cmd = f'tmux new -d -s "{name}" "{command} |& tee {log_file}"'
+        cmd = f'cd ~ && {command} |& tee {log_file}'
+        cmd = f'tmux new -d -s "{name}" "{cmd}"'
+        c = Connection(host, user='ec2-user', connect_kwargs=self.connect)
         output = c.run(cmd, hide=True)
         self._check_stderr(output)
 
@@ -161,7 +159,7 @@ class Bench:
                 f'./{self.settings.repo_name}/target/release/'
             )
         ]
-        g = Group(*ips, user='ubuntu', connect_kwargs=self.connect)
+        g = Group(*ips, user='ec2-user', connect_kwargs=self.connect)
         print(g.run(' && '.join(cmd), hide=True))
 
     def _config(self, hosts, node_parameters, bench_parameters):
@@ -230,7 +228,7 @@ class Bench:
         progress = progress_bar(names, prefix='Uploading config files:')
         for i, name in enumerate(progress):
             #for ip in committee.ips(name):
-            c = Connection(hosts[i], user='ubuntu', connect_kwargs=self.connect)
+            c = Connection(hosts[i], user='ec2-user', connect_kwargs=self.connect)
             c.run(f'{CommandMaker.cleanup()} || true', hide=True)
             #c.put(PathMaker.committee_file(), '.')
             if i == 0:
@@ -322,7 +320,7 @@ class Bench:
         progress = progress_bar(hosts, prefix='Downloading workers logs:')
         for i, address in enumerate(progress):
             if i==0:
-                c = Connection(address, user='ubuntu', connect_kwargs=self.connect)
+                c = Connection(address, user='ec2-user', connect_kwargs=self.connect)
                 c.get(
                     PathMaker.syncer_log_file(),
                     local=PathMaker.syncer_log_file()
@@ -345,6 +343,9 @@ class Bench:
         except ConfigError as e:
             raise BenchError('Invalid nodes or bench parameters', e)
 
+        self.protocol = bench_parameters.protocol
+        self.bfile = bench_parameters.bfile
+        self.byzantine = bench_parameters.byzantine
         # Select which hosts to use.
         selected_hosts = self._select_hosts(bench_parameters)
         print(selected_hosts)
