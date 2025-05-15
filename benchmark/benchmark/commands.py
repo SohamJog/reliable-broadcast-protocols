@@ -41,11 +41,11 @@ class CommandMaker:
  
     
     @staticmethod
-    def run_syncer(key, debug=False):
+    def run_syncer(key, bfile, byzantine, debug=False):
         assert isinstance(key, str)
         assert isinstance(debug, bool)
         return (f'./node --config {key} --ip ip_file '
-            f'--protocol sync --input xx --syncer syncer')
+            f'--protocol sync --input xx --syncer syncer --bfile {bfile} --byzantine {str(byzantine).lower()}')
 
 
     @staticmethod
@@ -78,6 +78,7 @@ class CommandMaker:
 
     @staticmethod
     def alias_binaries(origin):
+        # add-rbc/target/release/'
         assert isinstance(origin, str)
         node, client, genconfig = join(origin, 'node'), join(origin, 'benchmark_client'), join(origin,'genconfig')
         return f'rm node ; rm benchmark_client ; rm genconfig ; ln -s {node} . ; ln -s {client} . ; ln -s {genconfig} .'

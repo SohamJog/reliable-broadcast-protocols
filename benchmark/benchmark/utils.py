@@ -39,6 +39,10 @@ class PathMaker:
     def t_key_file():
         #assert isinstance(i, int) and i >= 0
         return f'data.tar.gz'
+    
+    @staticmethod
+    def t_testdata_file():
+        return f'longer_test_msgs.txt'
 
     @staticmethod
     def t_key_secfile(i):

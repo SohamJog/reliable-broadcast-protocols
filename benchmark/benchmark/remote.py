@@ -131,9 +131,7 @@ class Bench:
 
     def _background_run(self, host, command, log_file):
         name = splitext(basename(log_file))[0]
-        # cmd = f'tmux new -d -s "{name}" "{command} |& tee {log_file}"'
-        cmd = f'cd ~ && {command} |& tee {log_file}'
-        cmd = f'tmux new -d -s "{name}" "{cmd}"'
+        cmd = f'tmux new -d -s "{name}" "{command} |& tee {log_file}"'
         c = Connection(host, user='ec2-user', connect_kwargs=self.connect)
         output = c.run(cmd, hide=True)
         self._check_stderr(output)
@@ -152,7 +150,8 @@ class Bench:
             f'(cd {self.settings.repo_name} && git checkout -f {self.settings.branch})',
             f'(cd {self.settings.repo_name} && git pull -f)',
             'source $HOME/.cargo/env',
-            'sudo apt install pkg-config && sudo apt install libssl-dev',
+            'sudo yum install -y pkgconfig openssl-devel',
+            # 'sudo apt install pkg-config && sudo apt install libssl-dev',
             'export RUSTFLAGS="-C target-feature=+aes,+ssse3"',
             f'(cd {self.settings.repo_name} && {CommandMaker.compile()})',
             CommandMaker.alias_binaries(
@@ -236,6 +235,7 @@ class Bench:
                 c.put(PathMaker.syncer(),'.')
             c.put(PathMaker.key_file(i), '.')
             c.put(PathMaker.t_key_file(),'.')
+            c.put(PathMaker.t_testdata_file(),'.')
             #for j in range(len(hosts)):
             #    print('Writing public key of tpubkey {}',PathMaker.t_key_pubfile(j+1))
             #    c.put(PathMaker.t_key_pubfile(j+1),'.')
@@ -248,30 +248,55 @@ class Bench:
         exp_vals = self.exp_setup(4)
         import numpy as np
         tri = np.max(exp_vals) - np.min(exp_vals)
-        for i,ip in enumerate(hosts):
-            #host = Committee.ip(address)
+        # for i,ip in enumerate(hosts):
+        #     #host = Committee.ip(address)
+        #     if i == 0:
+        #         # Run syncer first
+        #         print('Running syncer')
+        #         cmd = CommandMaker.run_syncer(
+        #             PathMaker.key_file(i),
+        #         )
+        #         print(cmd)
+        #         log_file = PathMaker.syncer_log_file()
+        #         self._background_run(ip, cmd, log_file)
+        #         cmd = CommandMaker.run_primary(
+        #             PathMaker.key_file(i),
+        #             self.protocol,
+        #             self.bfile,
+        #             self.byzantine
+        #         )
+ 
+        #     unzip_cmd = CommandMaker.unzip_tkeys('data.tar.gz')
+        #     print(unzip_cmd)
+        #     self._background_run(ip,unzip_cmd,"unzip.log")
+        #     print(cmd)
+        #     log_file = PathMaker.primary_log_file(i)
+        #     self._background_run(ip, cmd, log_file)
+        for i, ip in enumerate(hosts):
             if i == 0:
                 # Run syncer first
                 print('Running syncer')
-                cmd = CommandMaker.run_syncer(
-                    PathMaker.key_file(i),
-                )
-                print(cmd)
-                log_file = PathMaker.syncer_log_file()
-                self._background_run(ip, cmd, log_file)
-                cmd = CommandMaker.run_primary(
-                    PathMaker.key_file(i),
-                    self.protocol,
-                    self.bfile,
-                    self.byzantine
-                )
- 
+                sync_cmd = CommandMaker.run_syncer(PathMaker.key_file(i), PathMaker.t_testdata_file(), self.byzantine)
+                print(sync_cmd)
+                sync_log = PathMaker.syncer_log_file()
+                self._background_run(ip, sync_cmd, sync_log)
+
+            # Run primary on all nodes
             unzip_cmd = CommandMaker.unzip_tkeys('data.tar.gz')
             print(unzip_cmd)
-            self._background_run(ip,unzip_cmd,"unzip.log")
+            self._background_run(ip, unzip_cmd, "unzip.log")
+
+            cmd = CommandMaker.run_primary(
+                PathMaker.key_file(i),
+                self.protocol,
+                self.bfile,
+                self.byzantine
+            )
             print(cmd)
             log_file = PathMaker.primary_log_file(i)
             self._background_run(ip, cmd, log_file)
+
+       
         return committee
 
     def exp_setup(self,n):
@@ -361,6 +386,7 @@ class Bench:
             raise BenchError('Failed to update nodes', e)
 
         # Upload all configuration files.
+        # @sohamJog temporarily commented out the rest of the function for debugging
         try:
             committee = self._config(
                 selected_hosts, node_parameters, bench_parameters
