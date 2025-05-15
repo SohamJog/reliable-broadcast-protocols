@@ -337,27 +337,36 @@ class Bench:
 
     def _logs(self, hosts, faults):
         # Delete local logs (if any).
-        cmd = CommandMaker.clean_logs()
-        subprocess.run([cmd], shell=True, stderr=subprocess.DEVNULL)
+        # cmd = CommandMaker.clean_logs()
+        # subprocess.run([cmd], shell=True, stderr=subprocess.DEVNULL)
 
         # Download log files.
         #workers_addresses = committee.workers_addresses(faults)
         progress = progress_bar(hosts, prefix='Downloading workers logs:')
+        # TODO: only get syncer
         for i, address in enumerate(progress):
-            if i==0:
+            if i == 0:
                 c = Connection(address, user='ec2-user', connect_kwargs=self.connect)
-                c.get(
-                    PathMaker.syncer_log_file(),
-                    local=PathMaker.syncer_log_file()
-                )
-            c.get(
-               PathMaker.client_log_file(i, 0), 
-               local=PathMaker.client_log_file(i, 0)
-            )
+                remote_path = PathMaker.syncer_log_file()
+                local_path = PathMaker.syncer_log_file()
+                print(f"Fetching syncer log from {address}")
+                print(f"Remote path: {remote_path}")
+                print(f"Local path: {local_path}")
+                c.get(remote_path, local=local_path)
+
+            # try:
+            #     c.get(
+            #     PathMaker.client_log_file(i, 0), 
+            #     local=PathMaker.client_log_file(i, 0)
+            #     )
+            # except Exception as e: 
+            #     print(f"Failed to fetch client log from {address}: { PathMaker.client_log_file(i, 0)} — {e}")
+
+
 
         # Parse logs and return the parser.
-        Print.info('Parsing logs and computing performance...')
-        return LogParser.process(PathMaker.logs_path(), faults=faults)
+        # Print.info('Parsing logs and computing performance...')
+        # return LogParser.process(PathMaker.logs_path(), faults=faults)
 
     def run(self, bench_parameters_dict, node_parameters_dict, debug=False):
         assert isinstance(debug, bool)

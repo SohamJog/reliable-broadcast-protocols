@@ -58,7 +58,7 @@ class PathMaker:
 
     @staticmethod
     def logs_path():
-        return '.'
+        return ''
 
     @staticmethod
     def primary_log_file(i):
