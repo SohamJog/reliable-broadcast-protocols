@@ -438,15 +438,72 @@ class Bench:
             raise BenchError('Failed to configure nodes', e)
 
 
+    # def pull_logs(self, bench_parameters_dict, node_parameters_dict, debug=False):
+    #     assert isinstance(debug, bool)
+    #     Print.heading('Starting remote benchmark')
+    #     try:
+    #         bench_parameters = BenchParameters(bench_parameters_dict)
+    #         node_parameters = NodeParameters(node_parameters_dict)
+    #     except ConfigError as e:
+    #         raise BenchError('Invalid nodes or bench parameters', e)
+
+    #     # Select which hosts to use.
+    #     selected_hosts = self._select_hosts(bench_parameters)
+    #     return self._logs(selected_hosts,0)
+
+
     def pull_logs(self, bench_parameters_dict, node_parameters_dict, debug=False):
-        assert isinstance(debug, bool)
-        Print.heading('Starting remote benchmark')
+        import re
+        from statistics import mean
+        from collections import defaultdict
+        from fabric import Connection
+
+        Print.heading('Fetching latency logs...')
         try:
             bench_parameters = BenchParameters(bench_parameters_dict)
             node_parameters = NodeParameters(node_parameters_dict)
         except ConfigError as e:
             raise BenchError('Invalid nodes or bench parameters', e)
 
-        # Select which hosts to use.
         selected_hosts = self._select_hosts(bench_parameters)
-        return self._logs(selected_hosts,0)
+        if not selected_hosts:
+            raise BenchError('No hosts available', None)
+
+        host = selected_hosts[0] if bench_parameters.collocate else selected_hosts[0][0]
+        c = Connection(host, user='ec2-user', connect_kwargs=self.connect)
+
+        Print.info(f'Running latency script on: {host}')
+        result = c.run(f'./add-rbc/benchmark/latencies.sh {max(bench_parameters.nodes)}', hide=True)
+        output = result.stdout
+
+        # Parse latency output
+        pattern = r'ID (\d+)\s+\|\s+(\d+)\s+bytes\s+\|\s+([\d.]+)\s+\|\s+\d+ latencies'
+        matches = re.findall(pattern, output)
+
+        latency_data = defaultdict(list)
+        seen_ids = []
+
+        for msg_id, byte_size, latency in matches:
+            latency_data[int(byte_size)].append(float(latency))
+            seen_ids.append(int(msg_id))
+
+        #validate
+        aggregated = {k: round(mean(v), 3) for k, v in latency_data.items()}
+
+        missing_ids = []
+        num_nodes = max(bench_parameters.nodes)
+        for i in range(num_nodes):
+            base = i * 10000
+            for j in range(1, 7):
+                if base + j not in seen_ids:
+                    missing_ids.append(base + j)
+
+        if missing_ids:
+            Print.warn(f"Not all message IDs found. Missing: {missing_ids}")
+        else:
+            Print.heading('Average Latencies by Message Size')
+            for byte_size in sorted(aggregated):
+                print(f"{byte_size} bytes: {aggregated[byte_size]} ms")
+
+        return aggregated
+ 
