@@ -29,9 +29,7 @@ async fn main() -> Result<()> {
         .value_of("bfile")
         .expect("Unable to parse broadcast messages file");
     let byz_flag = m.value_of("byz").expect("Unable to parse Byzantine flag");
-    let crash_flag = m
-        .value_of("crash")
-        .expect("Unable to parse crash flag");
+    let crash_flag = m.value_of("crash").unwrap_or("true");
     let node_crash: bool = match crash_flag {
         "true" => true,
         "false" => false,
