@@ -58,7 +58,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn spawn(config: Node, message: Vec<u8>, byz: bool) -> anyhow::Result<oneshot::Sender<()>> {
+    pub fn spawn(config: Node, message: Vec<u8>, byz: bool, _crash: bool) -> anyhow::Result<oneshot::Sender<()>> {
         // Add a separate configuration for RBC service. 
 
         let mut consensus_addrs: FnvHashMap<Replica, SocketAddr> = FnvHashMap::default();

@@ -37,6 +37,7 @@ pub struct Context {
     pub num_faults: usize,
     pub inp_message: Vec<u8>,
     pub byz: bool,
+    pub crash: bool,
 
     /// Secret Key map
     pub sec_key_map: HashMap<Replica, Vec<u8>>,
@@ -50,7 +51,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn spawn(config: Node, message: Vec<u8>, byz: bool) -> anyhow::Result<oneshot::Sender<()>> {
+    pub fn spawn(config: Node, message: Vec<u8>, byz: bool, crash: bool) -> anyhow::Result<oneshot::Sender<()>> {
         let mut consensus_addrs: FnvHashMap<Replica, SocketAddr> = FnvHashMap::default();
         for (replica, address) in config.net_map.iter() {
             let address: SocketAddr = address.parse().expect("Unable to parse address");
@@ -97,6 +98,7 @@ impl Context {
                 sec_key_map: HashMap::default(),
                 myid: config.id,
                 byz: byz & (config.id < config.num_faults),
+                crash: crash & (config.id < config.num_faults),
                 num_faults: config.num_faults,
                 cancel_handlers: HashMap::default(),
                 exit_rx: exit_rx,

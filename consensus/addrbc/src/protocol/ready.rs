@@ -62,16 +62,19 @@ impl Context {
         // sleep(Duration::from_millis(50)).await;
         // Echo to every node the encoding corresponding to the replica id
         let sec_key_map = self.sec_key_map.clone();
-        for (replica, sec_key) in sec_key_map.into_iter() {
-            if replica == self.myid {
-                self.ready_self(hash, instance_id).await;
-                continue;
-            }
+        if !self.crash {
+            for (replica, sec_key) in sec_key_map.into_iter() {
+                if replica == self.myid {
+                    self.ready_self(hash, instance_id).await;
+                    continue;
+                }
 
-            let wrapper_msg = WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
-            let cancel_handler: CancelHandler<Acknowledgement> =
-                self.net_send.send(replica, wrapper_msg).await;
-            self.add_cancel_handler(cancel_handler);
+                let wrapper_msg =
+                    WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
+                let cancel_handler: CancelHandler<Acknowledgement> =
+                    self.net_send.send(replica, wrapper_msg).await;
+                self.add_cancel_handler(cancel_handler);
+            }
         }
     }
 
@@ -89,10 +92,7 @@ impl Context {
             let output_message = rbc_context.output_message.clone();
             rbc_context.status = Status::TERMINATED;
             let _ = rbc_context;
-            log::info!(
-                "Terminating for instance id: {:?}",               
-                instance_id
-            );
+            log::info!("Terminating for instance id: {:?}", instance_id);
             self.terminate(output_message).await;
             return;
         }
@@ -140,10 +140,7 @@ impl Context {
                     match f.decode([].to_vec(), shares_for_correction.to_vec()) {
                         Ok(data) => {
                             if data.len() != 0 {
-                                log::info!(
-                                    "Outputting: for instance id: {:?}",
-                                    instance_id
-                                );
+                                log::info!("Outputting: for instance id: {:?}", instance_id);
                                 rbc_context.output_message = data;
                                 rbc_context.status = Status::OUTPUT;
                             }
@@ -153,6 +150,11 @@ impl Context {
                         }
                     }
                     if rbc_context.status == Status::OUTPUT {
+                        let output_message = rbc_context.output_message.clone();
+                        rbc_context.status = Status::TERMINATED;
+                        let _ = rbc_context;
+                        log::info!("Terminating for instance id: {:?}", instance_id);
+                        self.terminate(output_message).await;
                         return;
                     }
                 }

@@ -65,31 +65,34 @@ impl Context {
         // Sleep to simulate network delay
         // log::info!("Starting echo for: {:?}", instance_id,);
         // sleep(Duration::from_millis(50)).await;
-        for (replica, sec_key) in sec_key_map.into_iter() {
-            if replica == self.myid {
-                self.echo_self(hash, shares[self.myid].clone(), instance_id)
-                    .await;
-                continue;
+        if !self.crash {
+            for (replica, sec_key) in sec_key_map.into_iter() {
+                if replica == self.myid {
+                    self.echo_self(hash, shares[self.myid].clone(), instance_id)
+                        .await;
+                    continue;
+                }
+
+                let msg = ShareMsg {
+                    share: if self.byz {
+                        Share {
+                            number: replica,
+                            data: vec![],
+                        }
+                    } else {
+                        shares[replica].clone()
+                    },
+                    hash,
+                    origin: self.myid,
+                };
+
+                let protocol_msg = ProtMsg::Echo(msg, instance_id);
+                let wrapper_msg =
+                    WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
+                let cancel_handler: CancelHandler<Acknowledgement> =
+                    self.net_send.send(replica, wrapper_msg).await;
+                self.add_cancel_handler(cancel_handler);
             }
-
-            let msg = ShareMsg {
-                share: if self.byz {
-                    Share {
-                        number: replica,
-                        data: vec![],
-                    }
-                } else {
-                    shares[replica].clone()
-                },
-                hash,
-                origin: self.myid,
-            };
-
-            let protocol_msg = ProtMsg::Echo(msg, instance_id);
-            let wrapper_msg = WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
-            let cancel_handler: CancelHandler<Acknowledgement> =
-                self.net_send.send(replica, wrapper_msg).await;
-            self.add_cancel_handler(cancel_handler);
         }
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         rbc_context.status = Status::ECHO;

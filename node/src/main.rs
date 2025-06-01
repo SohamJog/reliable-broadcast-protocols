@@ -29,6 +29,16 @@ async fn main() -> Result<()> {
         .value_of("bfile")
         .expect("Unable to parse broadcast messages file");
     let byz_flag = m.value_of("byz").expect("Unable to parse Byzantine flag");
+    let crash_flag = m
+        .value_of("crash")
+        .expect("Unable to parse crash flag");
+    let node_crash: bool = match crash_flag {
+        "true" => true,
+        "false" => false,
+        _ => {
+            panic!("Crash flag invalid value. found: {}", crash_flag);
+        }
+    };
     let node_normal: bool = match byz_flag {
         "true" => true,
         "false" => false,
@@ -68,22 +78,22 @@ async fn main() -> Result<()> {
     match vss_type {
         "rbc" => {
             exit_tx =
-                rbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
+                rbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal, node_crash)
                     .unwrap();
         }
         "addrbc" => {
             exit_tx =
-                addrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
+                addrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal, node_crash)
                     .unwrap();
         }
         "ctrbc" => {
             exit_tx =
-                ctrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
+                ctrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal, node_crash)
                     .unwrap();
         }
         "avid" => {
             exit_tx =
-                avid::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal)
+                avid::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal,  node_crash)
                     .unwrap();
         }
         "sync" => {

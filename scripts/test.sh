@@ -13,6 +13,7 @@ TYPE=${TYPE:="release"}
 protocol=${5:-rbc}
 NUM_NODES=${6:-4}
 TESTDIR=${TESTDIR:="testdata/hyb_$NUM_NODES"}
+crash=${7:-true}
 
 # Run the syncer
 ./target/$TYPE/node \
@@ -22,7 +23,9 @@ TESTDIR=${TESTDIR:="testdata/hyb_$NUM_NODES"}
     --input 100 \
     --syncer "$1" \
     --bfile "$4" \
-    --byzantine false > logs/syncer.log &
+    --byzantine false \
+    --crash false > logs/syncer.log &
+
 
 # Run all the nodes
 for ((i=0; i<NUM_NODES; i++)); do
@@ -33,7 +36,8 @@ for ((i=0; i<NUM_NODES; i++)); do
         --input "$2" \
         --syncer "$1" \
         --bfile "$4" \
-        --byzantine "$3" > logs/$i.log &
+        --byzantine "$3" \
+        --crash "$crash" > logs/$i.log &
 done
 
 # Example usage:

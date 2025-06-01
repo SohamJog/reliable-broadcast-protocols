@@ -39,7 +39,12 @@ args:
         help: The location of a file containing the list of all messages to be reliably broadcasted
         takes_value: true
     - byz:
-        short: b
+        short: z
         long: byzantine
         help: Byzantine faulty or normal node
+        takes_value: true
+    - crash:
+        short: cc
+        long: crash
+        help: Whether this protocol simulates crash faults (true) or byzantine faults (false), if any
         takes_value: true

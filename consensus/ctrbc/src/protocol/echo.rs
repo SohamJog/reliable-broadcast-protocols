@@ -109,6 +109,9 @@ impl Context {
             if echo_root.is_some() && !rbc_context.terminated {
                 rbc_context.terminated = true;
                 // Send Ready and terminate
+                if self.crash {
+                    return;
+                }
 
                 let fragment = rbc_context.fragment.clone().unwrap();
                 let ctrbc_msg = CTRBCMsg {

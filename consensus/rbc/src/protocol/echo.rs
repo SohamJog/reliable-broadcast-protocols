@@ -4,6 +4,9 @@ use crate::Context;
 
 impl Context {
     pub async fn start_echo(self: &mut Context, msg_content: Vec<u8>, instance_id: usize) {
+        if self.crash {
+            return;
+        }
         // Draft a message
         let msg = Msg {
             content: msg_content.clone(),

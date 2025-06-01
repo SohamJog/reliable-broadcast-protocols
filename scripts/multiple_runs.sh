@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# NOTE THAT I HAVE HARDCODED CRASH STATUS FOR NOW
 # Usage: ./multiple_runs.sh <num_iterations> [<num_nodes> <protocol> <byzantine>]
 # Defaults:
 #   <num_nodes> = 4
@@ -24,7 +25,7 @@ do
   echo "=== Run $((i+1)) ==="
   pkill -f "./target/release/node"
 
-  ./scripts/test.sh testdata/hyb_"$NUM_NODES"/syncer Hi "$BYZANTINE" "$TESTDATA_FILE" "$PROTOCOL" "$NUM_NODES"
+  ./scripts/test.sh testdata/hyb_"$NUM_NODES"/syncer Hi "$BYZANTINE" "$TESTDATA_FILE" "$PROTOCOL" "$NUM_NODES" true
   
   # --- Wait for correct number of outputs ---
   EXPECTED_LINES=$(( NUM_INSTANCES + 2 ))
