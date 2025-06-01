@@ -19,9 +19,9 @@ DEFAULT_BENCH_PARAMS = {
     'tx_size': 512,
     'duration': 300,
     'runs': 2,
-    'protocol': 'addrbc',
+    'protocol': 'rbc',
     'bfile': 'longer_test_msgs.txt',
-    'byzantine': False,
+    'byzantine': True,
 }
 
 DEFAULT_NODE_PARAMS = {
@@ -78,7 +78,7 @@ def destroy(ctx):
 
 
 @task
-def start(ctx, max=2):
+def start(ctx, max=5):
     ''' Start machines '''
     try:
         InstanceManager.make().start_instances(max)

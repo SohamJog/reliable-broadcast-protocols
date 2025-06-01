@@ -500,10 +500,9 @@ class Bench:
 
         if missing_ids:
             Print.warn(f"Not all message IDs found. Missing: {missing_ids}")
-        else:
-            Print.heading('Average Latencies by Message Size')
-            for byte_size in sorted(aggregated):
-                print(f"{byte_size} bytes: {aggregated[byte_size]} ms")
+        Print.heading('Average Latencies by Message Size')
+        for byte_size in sorted(aggregated):
+            print(f"{byte_size} bytes: {aggregated[byte_size]} ms")
 
         return aggregated
  
