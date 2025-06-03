@@ -187,7 +187,7 @@ class Bench:
         #committee = LocalCommittee(names, self.BASE_PORT)
         #ip_file.print("ip_file")
 
-        # Generate the configuration files for HashRand
+        # Generate the configuration files for add-rbc
         cmd = CommandMaker.generate_config_files(self.settings.base_port,self.settings.client_base_port,self.settings.client_run_port,len(hosts))
         subprocess.run(cmd,shell=True)
         names = [str(x) for x in range(len(hosts))]
@@ -226,19 +226,15 @@ class Bench:
         names = names[:len(names)-bench_parameters.faults]
         progress = progress_bar(names, prefix='Uploading config files:')
         for i, name in enumerate(progress):
-            #for ip in committee.ips(name):
             c = Connection(hosts[i], user='ec2-user', connect_kwargs=self.connect)
             c.run(f'{CommandMaker.cleanup()} || true', hide=True)
-            #c.put(PathMaker.committee_file(), '.')
             if i == 0:
                 print('Node 0: writing syncer')
                 c.put(PathMaker.syncer(),'.')
             c.put(PathMaker.key_file(i), '.')
             c.put(PathMaker.t_key_file(),'.')
             c.put(PathMaker.t_testdata_file(),'.')
-            #for j in range(len(hosts)):
-            #    print('Writing public key of tpubkey {}',PathMaker.t_key_pubfile(j+1))
-            #    c.put(PathMaker.t_key_pubfile(j+1),'.')
+
             c.put("ip_file",'.')
             #c.put(PathMaker.parameters_file(), '.')
         Print.info('Booting primaries...')
@@ -248,30 +244,6 @@ class Bench:
         exp_vals = self.exp_setup(4)
         import numpy as np
         tri = np.max(exp_vals) - np.min(exp_vals)
-        # for i,ip in enumerate(hosts):
-        #     #host = Committee.ip(address)
-        #     if i == 0:
-        #         # Run syncer first
-        #         print('Running syncer')
-        #         cmd = CommandMaker.run_syncer(
-        #             PathMaker.key_file(i),
-        #         )
-        #         print(cmd)
-        #         log_file = PathMaker.syncer_log_file()
-        #         self._background_run(ip, cmd, log_file)
-        #         cmd = CommandMaker.run_primary(
-        #             PathMaker.key_file(i),
-        #             self.protocol,
-        #             self.bfile,
-        #             self.byzantine
-        #         )
- 
-        #     unzip_cmd = CommandMaker.unzip_tkeys('data.tar.gz')
-        #     print(unzip_cmd)
-        #     self._background_run(ip,unzip_cmd,"unzip.log")
-        #     print(cmd)
-        #     log_file = PathMaker.primary_log_file(i)
-        #     self._background_run(ip, cmd, log_file)
         for i, ip in enumerate(hosts):
             if i == 0:
                 # Run syncer first
@@ -290,7 +262,8 @@ class Bench:
                 PathMaker.key_file(i),
                 self.protocol,
                 self.bfile,
-                self.byzantine
+                self.byzantine,
+                self.crash,
             )
             print(cmd)
             log_file = PathMaker.primary_log_file(i)
@@ -308,32 +281,67 @@ class Bench:
         return arr_int
 
 
+    # def _just_run(self, hosts, node_parameters, bench_parameters):
+
+    #     Print.info('Booting primaries...')
+    #     st_time = round(time.time() * 1000) + 60000
+    #     batches = 1
+    #     per_batch = 2000
+
+    #     for i,ip in enumerate(hosts):
+    #         #host = Committee.ip(address)
+    #         if i == 0:
+    #             # Run syncer first
+    #             print('Running syncer')
+    #             cmd = CommandMaker.run_syncer(
+    #                 PathMaker.key_file(i),
+    #             )
+    #             print(cmd)
+    #             log_file = PathMaker.syncer_log_file()
+    #             self._background_run(ip, cmd, log_file)
+    #         cmd = CommandMaker.run_primary(
+    #             PathMaker.key_file(i),
+    #             self.protocol,
+    #             self.bfile,
+    #             self.byzantine,
+    #             self.crash
+    #         )
+    #         log_file = PathMaker.primary_log_file(i)
+    #         self._background_run(ip, cmd, log_file)
     def _just_run(self, hosts, node_parameters, bench_parameters):
-
         Print.info('Booting primaries...')
-        st_time = round(time.time() * 1000) + 60000
-        batches = 1
-        per_batch = 2000
+        names = [str(x) for x in range(len(hosts))]
 
-        for i,ip in enumerate(hosts):
-            #host = Committee.ip(address)
+        for i, ip in enumerate(hosts):
             if i == 0:
-                # Run syncer first
+                # Run syncer
                 print('Running syncer')
                 cmd = CommandMaker.run_syncer(
                     PathMaker.key_file(i),
+                    PathMaker.t_testdata_file(),
+                    self.byzantine
                 )
                 print(cmd)
                 log_file = PathMaker.syncer_log_file()
                 self._background_run(ip, cmd, log_file)
+
+            # Optionally unzip tkeys/tdata if not guaranteed to exist
+            unzip_cmd = CommandMaker.unzip_tkeys("data.tar.gz")
+            print(unzip_cmd)
+            self._background_run(ip, unzip_cmd, "unzip.log")
+
+            # Run primary
             cmd = CommandMaker.run_primary(
                 PathMaker.key_file(i),
                 self.protocol,
                 self.bfile,
-                self.byzantine
+                self.byzantine,
+                self.crash
             )
+            print(cmd)
             log_file = PathMaker.primary_log_file(i)
             self._background_run(ip, cmd, log_file)
+
 
     def _logs(self, hosts, faults):
         # Delete local logs (if any).
@@ -380,6 +388,7 @@ class Bench:
         self.protocol = bench_parameters.protocol
         self.bfile = bench_parameters.bfile
         self.byzantine = bench_parameters.byzantine
+        self.crash = bench_parameters.crash
         # Select which hosts to use.
         selected_hosts = self._select_hosts(bench_parameters)
         print(selected_hosts)
@@ -395,7 +404,6 @@ class Bench:
             raise BenchError('Failed to update nodes', e)
 
         # Upload all configuration files.
-        # @sohamJog temporarily commented out the rest of the function for debugging
         try:
             committee = self._config(
                 selected_hosts, node_parameters, bench_parameters
@@ -410,6 +418,10 @@ class Bench:
         Print.heading('Starting remote benchmark')
         try:
             bench_parameters = BenchParameters(bench_parameters_dict)
+            self.protocol = bench_parameters.protocol
+            self.bfile = bench_parameters.bfile
+            self.byzantine = bench_parameters.byzantine
+            self.crash = bench_parameters.crash
             node_parameters = NodeParameters(node_parameters_dict)
         except ConfigError as e:
             raise BenchError('Invalid nodes or bench parameters', e)
@@ -436,21 +448,6 @@ class Bench:
         except (subprocess.SubprocessError, GroupException) as e:
             e = FabricError(e) if isinstance(e, GroupException) else e
             raise BenchError('Failed to configure nodes', e)
-
-
-    # def pull_logs(self, bench_parameters_dict, node_parameters_dict, debug=False):
-    #     assert isinstance(debug, bool)
-    #     Print.heading('Starting remote benchmark')
-    #     try:
-    #         bench_parameters = BenchParameters(bench_parameters_dict)
-    #         node_parameters = NodeParameters(node_parameters_dict)
-    #     except ConfigError as e:
-    #         raise BenchError('Invalid nodes or bench parameters', e)
-
-    #     # Select which hosts to use.
-    #     selected_hosts = self._select_hosts(bench_parameters)
-    #     return self._logs(selected_hosts,0)
-
 
     def pull_logs(self, bench_parameters_dict, node_parameters_dict, debug=False):
         import re

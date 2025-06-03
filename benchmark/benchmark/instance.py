@@ -57,10 +57,6 @@ class InstanceManager:
                 ids[region] += [x['InstanceId']]
                 if 'PublicIpAddress' in x:
                     ips[region] += [x['PublicIpAddress']]
-        
-        print("ids: ", ids)
-        print("ips: ", ips)
-        print("self.clients: ", self.clients)
         return ids, ips
 
     def _wait(self, state):

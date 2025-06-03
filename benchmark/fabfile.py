@@ -12,16 +12,17 @@ from benchmark.utils import PathMaker
 # === Global Benchmark Parameters ===
 DEFAULT_BENCH_PARAMS = {
     'faults': 0,
-    'nodes': [16],
+    'nodes': [8],
     'workers': 1,
     'collocate': True,
     'rate': [10_000, 110_000],
     'tx_size': 512,
     'duration': 300,
     'runs': 2,
-    'protocol': 'rbc',
+    'protocol': 'addrbc',
     'bfile': 'longer_test_msgs.txt',
-    'byzantine': True,
+    'byzantine': False,
+    'crash': False,
 }
 
 DEFAULT_NODE_PARAMS = {
@@ -60,7 +61,7 @@ def log_v(ctx, debug=True):
 # The parameter nodes determines how many instances to create in each AWS region. That is, if you specified 5 AWS regions as in the example of step 3, setting nodes=2 will creates a total of 16 machines:
 
 @task
-def create(ctx, nodes=2):
+def create(ctx, nodes=1):
     ''' Create a testbed '''
     try:
         InstanceManager.make().create_instances(nodes)
@@ -119,9 +120,6 @@ def remote(ctx, debug=False):
     try:
         Bench(ctx).run(
             DEFAULT_BENCH_PARAMS, DEFAULT_NODE_PARAMS,
-            # DEFAULT_BENCH_PARAMS['protocol'],
-            # DEFAULT_BENCH_PARAMS['bfile'],
-            # DEFAULT_BENCH_PARAMS['byzantine'],
             debug
         )
     except BenchError as e:
@@ -134,9 +132,6 @@ def rerun(ctx, debug=False):
     try:
         Bench(ctx).justrun(
             DEFAULT_BENCH_PARAMS, DEFAULT_NODE_PARAMS,
-            DEFAULT_BENCH_PARAMS['protocol'],
-            DEFAULT_BENCH_PARAMS['bfile'],
-            DEFAULT_BENCH_PARAMS['byzantine'],
             debug
         )
     except BenchError as e:
@@ -175,9 +170,6 @@ def logs(ctx):
     try:
         print(Bench(ctx).pull_logs(
             DEFAULT_BENCH_PARAMS, DEFAULT_NODE_PARAMS,
-            # DEFAULT_BENCH_PARAMS['protocol'],
-            # DEFAULT_BENCH_PARAMS['bfile'],
-            # DEFAULT_BENCH_PARAMS['byzantine']
         ))
     except ParseError as e:
         Print.error(BenchError('Failed to parse logs', e))

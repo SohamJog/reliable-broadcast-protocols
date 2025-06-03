@@ -85,7 +85,7 @@ class LocalBench:
             #committee = LocalCommittee(names, self.BASE_PORT)
             #ip_file.print("ip_file")
 
-            # Generate the configuration files for HashRand
+            # Generate the configuration files for add-rbc
             cmd = CommandMaker.generate_config_files(self.BASE_PORT,self.cl_bport,9500,nodes)
             self._background_run(cmd,"err.log")
 
@@ -97,13 +97,11 @@ class LocalBench:
                 self.protocol,
                 self.bfile,
                 self.byzantine,
+                self.crash,
                 debug=debug
                 )
                 log_file = PathMaker.primary_log_file(i)
                 self._background_run(cmd, log_file)
-
-          
-
         except (subprocess.SubprocessError, ParseError) as e:
             self._kill_nodes()
             raise BenchError('Failed to run benchmark', e)

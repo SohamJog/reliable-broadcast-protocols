@@ -216,6 +216,7 @@ class BenchParameters:
             self.duration = int(json['duration'])
 
             self.byzantine = bool(json['byzantine']) if 'byzantine' in json else False
+            self.crash = bool(json['crash']) if 'crash' in json else False
             self.protocol = json['protocol'] if 'protocol' in json else 'addrbc'
             self.bfile = json['bfile'] if 'bfile' in json else 'longer_test_msgs.txt'
 
