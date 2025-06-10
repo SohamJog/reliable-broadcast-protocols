@@ -1,5 +1,4 @@
 # Running Benchmarks
-Forked from (hashrand-rs) [https://github.com/akhilsb/hashrand-rs].
 
 This document explains how to benchmark the codebase and read benchmarks' results. It also provides a step-by-step tutorial to run benchmarks on [Amazon Web Services (AWS)](https://aws.amazon.com) accross multiple data centers (WAN).
 
@@ -32,7 +31,7 @@ $ ssh-keygen -f ~/.ssh/aws
 ```
 
 ### Step 3. Configure the testbed
-The file [settings.json](https://github.com/akhilsb/hashrand-rs/blob/master/benchmark/settings.json) (located in [hashrand-rs/benchmarks](https://github.com/akhilsb/hashrand-rs/blob/master/benchmark)) contains all the configuration parameters of the testbed to deploy. Its content looks as follows:
+The file [settings.json](https://github.com/SohamJog/add-rbc/blob/main/benchmark/settings.json) (located in [add-rbc/benchmark](https://github.com/SohamJog/add-rbc/blob/main/benchmark)) contains all the configuration parameters of the testbed to deploy. Its content looks as follows:
 ```json
 {
     "key": {
@@ -43,8 +42,8 @@ The file [settings.json](https://github.com/akhilsb/hashrand-rs/blob/master/benc
     "client_base_port": 9000,
     "client_run_port": 9500,
     "repo": {
-        "name": "hashrand-rs",
-        "url": "https://github.com/akhilsb/hashrand-rs.git",
+        "name": "add-rbc",
+        "url": "https://github.com/SohamJog/add-rbc",
         "branch": "master"
     },
     "instances": {
@@ -74,9 +73,9 @@ The artifact requires a number of TCP ports for communication between the proces
 The third block (`repo`) contains the information regarding the repository's name, the URL of the repo, and the branch containing the code to deploy: 
 ```json
 "repo": {
-    "name": "hashrand-rs",
-    "url": "https://github.com/akhilsb/hashrand-rs.git",
-    "branch": "master"
+    "name": "add-rbc",
+    "url": "https://github.com/SohamJog/add-rbc"",
+    "branch": "main"
 },
 ```
 Remember to update the `url` field to the name of your repo. Modifying the branch name is particularly useful when testing new functionalities without having to checkout the code locally. 
@@ -90,19 +89,22 @@ The the last block (`instances`) specifies the [AWS instance type](https://aws.a
 ```
 The instance type selects the hardware on which to deploy the testbed. For example, `t3a.medium` instances come with 2 vCPU (2 physical cores), and 4 GB of RAM. The python scripts will configure each instance with 300 GB of SSD hard drive. The `regions` field specifies the data centers to use. If you require more nodes than data centers, the python scripts will distribute the nodes as equally as possible amongst the data centers. All machines run a fresh install of Ubuntu Server 20.04.
 
-### Step 4. Create a testbed
-The AWS instances are orchestrated with [Fabric](http://www.fabfile.org) from the file [fabfile.py](https://github.com/akhil-sb/hashrand-rs/blob/master/benchmark/fabfile.py) (located in [hashrand-rs/benchmarks](https://github.com/akhilsb/hashrand-rs/blob/master/benchmark)); you can list all possible commands as follows:
+### Step 4. Set up experiment parameters
+You can edit `BENCH_PARAMETERS` in `fabfile.py` to change parameters like the number of nodes, byzantine behavior, crash behavior etc.
+
+### Step 5. Create a testbed
+The AWS instances are orchestrated with [Fabric](http://www.fabfile.org) from the file [fabfile.py](https://github.com/SohamJog/add-rbc/blob/main/benchmark/fabfile.py) (located in [add-rbc/benchmark](https://github.com/SohamJog/add-rbc/blob/main/benchmark)); you can list all possible commands as follows:
 ```
-$ cd hashrand-rs/benchmark
+$ cd add-rbc/benchmark
 $ fab --list
 ```
-The command `fab create` creates new AWS instances; open [fabfile.py](https://github.com/akhilsb/hashrand-rs/blob/master/benchmark/fabfile.py) and locate the `create` task:
+The command `fab create` creates new AWS instances; open [fabfile.py](https://github.com/SohamJog/add-rbc/blob/main/benchmark/fabfile.py) and locate the `create` task:
 ```python
 @task
 def create(ctx, nodes=2):
     ...
 ```
-The parameter `nodes` determines how many instances to create in *each* AWS region. That is, if you specified 5 AWS regions as in the example of step 3, setting `nodes=2` will creates a total of 16 machines:
+The parameter `nodes` determines how many instances to create in *each* AWS region. That is, if you specified 8 AWS regions as in the example of step 3, setting `nodes=2` will creates a total of 16 machines:
 ```
 $ fab create
 
@@ -120,8 +122,8 @@ Initialized testbed of 16 nodes
 This may take a long time as the command will first update all instances.
 The commands `fab stop` and `fab start` respectively stop and start the testbed without destroying it (it is good practice to stop the testbed when not in use as AWS can be quite expensive); and `fab destroy` terminates all instances and destroys the testbed. Note that, depending on the instance types, AWS instances may take up to several minutes to fully start or stop. The command `fab info` displays a nice summary of all available machines and information to manually connect to them (for debug).
 
-### Step 5. Run a benchmark
-After setting up the testbed, running a benchmark on AWS is similar to running it locally (see [Run Local Benchmarks](https://github.com/akhilsb/hashrand-rs/tree/master/benchmark#local-benchmarks)). Locate the task `remote` in [fabfile.py](https://github.com/akhilsb/hashrand-rs/blob/master/benchmark/fabfile.py):
+### Step 6. Run a benchmark
+After setting up the testbed, running a benchmark on AWS is similar to running it locally. Locate the task `remote` in [fabfile.py](https://github.com/SohamJog/add-rbc/blob/main/benchmark/fabfile.py):
 ```python
 @task
 def remote(ctx):
@@ -131,11 +133,10 @@ Change the number of nodes to run in the `remote` function. Run the benchmark wi
 ```
 $ fab remote
 ```
-This command first updates all machines with the latest commit of the GitHub repo and branch specified in your file [settings.json](https://github.com/akhilsb/hashrand-rs/blob/master/benchmark/settings.json) (step 3); this ensures that benchmarks are always run with the latest version of the code. It then generates and uploads the configuration files to each machine, and runs the benchmarks with the specified parameters. Make sure to change the number of nodes in the `remote` function. The input parameters for hashrand can be set in the `_config` function in the benchmark/remote.py file in the `benchmark` folder. 
+This command first updates all machines with the latest commit of the GitHub repo and branch specified in your file [settings.json](https://github.com/SohamJog/add-rbc/blob/main/benchmark/settings.json) (step 3); this ensures that benchmarks are always run with the latest version of the code. It then generates and uploads the configuration files to each machine, and runs the benchmarks with the specified parameters. Make sure to change the number of nodes in the `remote` function. The input parameters for add-rbc can be set in the `_config` function in the benchmark/remote.py file in the `benchmark` folder. 
 
-The parameters required for HashRand can be set in lines 271 (Batch size $\beta$) and 272 (Pipelining Frequency $\phi$) in the file `benchmark/remote.py`. Change these values to vary the configuration parameters. 
 
-### Step 6: Download logs
+### Step 7: Download logs
 The following command downloads the log file from the `syncer` titled `syncer.log`. 
 ```
 $ fab logs
@@ -147,6 +148,11 @@ Be sure to kill the prior benchmark using the following command before running a
 $ fab kill
 ```
 
+If you want to run the experiment with the same parameters multiple times, you can run `fab rerun` so that you don't have to set up all the machines multiple times.
+```
+$ fab rerun
+```
+
 ### Running the benchmark for different numbers of nodes
 After running the benchmarks for a given number of nodes, destroy the testbed with the following command. 
 ```
@@ -154,31 +160,11 @@ $ fab destroy
 ```
 This command destroys the testbed and terminates all created AWS instances.
 
-## Running Dfinity
-The `run_primary` function in the `commands.py` file specifies which protocol to run. Currently, the function runs the `hashrand` protocol denoted by the keyword `del`, passed to the program using the `--vsstype` functionality. Change this `bea` keyword to `glow` run Dfinity. 
-
-In addition to the previous changes, the Dfinity protocol requires the presence of a file with the name `tkeys.tar.gz`, which is a compressed file containing the BLS public key as `pub`, partial secret key shares as `sec0,...,sec{n-1}`, and corresponding public keys as `pub0,...,pubn-1`. This repository contains these keys for values of `n=16,40,64,136`. Before running Dfinity, run the following command to copy the BLS keys for the code to access. 
-```
-$ cp tkeys-{n}.tar.gz tkeys.tar.gz
-```
-After making these changes, retrace the procedure from Step 5 to run the protocols. 
 
 # Reproducing results in the paper
-We ran HashRand at configuration of $\beta=200,\phi=5$ (set on line 271 and 272 in the file `remote.py`) at $n=16$, $\beta=100,\phi=10$ at $n=40$, $\beta=200,\phi=30$ at $n=64$, and $\beta=100,\phi=50$ at $n=136$, at $n=16,40,64,136$ nodes in a geo-distributed testbed of `t3a.medium` nodes spread across 8 regions:  N. Virginia, Ohio, N. California, Oregon, Canada, Ireland, Singapore, and Tokyo (These values are pre-configured in the `settings.json` file).
+We ran add-rbc at with $n=16,40$ nodes, with and without crash and byzantine faults (see step 4 to tweak parameters) in a geo-distributed testbed of `t3a.medium` nodes spread across 8 regions: "us-east-1","us-east-2","us-west-1","us-west-2","ca-central-1", "eu-west-1", "ap-southeast-1", "ap-northeast-1" (These values are pre-configured in the `settings.json` file).
 
-We ran Dfinity with the same configuration. However, Dfinity's runtime is independent of the inputs and input parameters. Remember to change the protocol to run by modifying `commands.py` file on Line 38 (change `bea` to `glow`) before running the benchmark. 
-
-In summary, perform the following steps before running a protocol on a given set of values. 
-
-1. Follow steps 1 through 4 to create a testbed of $n=16$ nodes. In step 4, set `nodes=2` in the `create` function to create a testbed of 16 nodes on AWS. 
-2. Change the `remote.py` file. Set $\beta$, $\phi$ on lines 271 and 272. 
-3. Change the `commands.py` file on line 38. Pass the parameter `bea`, `glow` into the `--vsstype` parameter for running HashRand, and Dfinity, respectively. 
-4. (For running Dfinity) Paste the `tkeys.tar.gz` file as specified in line 162 of this README.md file. 
-5. Run the benchmark from Step 5. Wait for 5 minutes and download the log file using the command `fab logs`. 
-6. Run `fab kill` to kill any previous benchmark. 
-7. Retrace this summary procedure from bullet point 2 to run a different benchmark on the same testbed. 
-8. After running all benchmarks at this $n$ value, run `fab destroy` to terminate all instances.  
-9. Retrace this summary procedure from bullet point 1 to run a benchmark on a testbed with different number of nodes. To reproduce the results from the paper, run the benchmarks on $n=16,40,64,136$ nodes. The `nodes` parameter in the `create` function must be set to `2,5,8,17` to create testbeds of these sizes in a geo-distributed manner. 
+We ran ctrbc and Bracha's rbc with the same configuration for comparison.
 
 # Artifact Evaluation on Cloudlab/Custom testbeds
 It is possible to evaluate our artifact on CloudLab/Chameleon. However, it would require us to change a few lines of code in the submitted artifact. The benchmarking code in the current artifact works in the following way.
@@ -224,6 +210,3 @@ Finally, the username in the file `remote.py` should be changed at 8 occurrences
 5. The configuration in `fabfile.py` needs to be changed to run the benchmark with the appropriate number of nodes. After this change, install the required dependencies to run the code in the `benchmark` folder. Pertinent instructions have been given in `benchmark/README.md` file. Then, run `fab install` to install the artifact in all the machines. Ensure that the machines have access to the internet to help access the dependencies necessary for installation. 
 6. Finally, follow the instructions in the `benchmark/README.md` file from Step 5 to run the benchmarks and plot results. 
 
-We note that the machines on Cloudlab and Chameleon do not mimic our geo-distributed testbed in AWS. This is because the AWS testbed has machines in 5 different continents, which implies a message delivery and round trip time between processes, and lower message bandwidth. As HashRand has a higher communication complexity compared to Dfinity-DVRF, we expect HashRand to have better numbers compared to Dfinity-DVRF on testbeds on Cloudlab and Chameleon. 
-
-In case this procedure is too long/tedious, you can verify performance trends of HashRand by spawning a single big machine on Cloudlab/Chameleon and running a local benchmark with specified number of nodes.This would have a similar effect as spawning multiple smaller machines in a single datacenter. Running the benchmark in such a setup would also boost HashRand’s numbers because of higher communication bandwidth and lower round trip time. The computational efficiency of HashRand and its corresponding performance boost can be verified in this setting.
