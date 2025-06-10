@@ -161,7 +161,7 @@ $ fab destroy
 This command destroys the testbed and terminates all created AWS instances.
 
 
-# Reproducing results in the paper
+# Reproducing results
 We ran add-rbc at with $n=16,40$ nodes, with and without crash and byzantine faults (see step 4 to tweak parameters) in a geo-distributed testbed of `t3a.medium` nodes spread across 8 regions: "us-east-1","us-east-2","us-west-1","us-west-2","ca-central-1", "eu-west-1", "ap-southeast-1", "ap-northeast-1" (These values are pre-configured in the `settings.json` file).
 
 We ran ctrbc and Bracha's rbc with the same configuration for comparison.
@@ -196,7 +196,7 @@ def hosts(self, flat=False):
     #except ClientError as e:
     #    raise BenchError('Failed to gather instances IPs', AWSError(e))
 ```
-3. Then, create a file with the name `instance-ips.json` in the `benchmark/` directory. The file should have the following structure. The key of each item in the map should be the location where the nodes are located, and the value is an array of ip addresses in that region. The benchmark distributes processes evenly in machines across different regions. In case all nodes are located in one region, use one key to list all the ip addresses. **Note that the total number of ip addresses listed must be at least as much as the number of processes being run in the benchmark. To run multiple processes on a single machine, list the ip address multiple times in the array. For example, to run two processes on the machine with ip `10.43.0.231`, list it twice in the array as ["10.43.0.231","10.43.0.231",..].** To reproduce the results in the paper, we suggest giving each process 2 CPU cores and 4 GigaBytes of RAM. For example, if you have a machine with 8 cores and 16 GB of RAM, you can run four processes in it by listing its ip address four times in the array. 
+3. Then, create a file with the name `instance-ips.json` in the `benchmark/` directory. The file should have the following structure. The key of each item in the map should be the location where the nodes are located, and the value is an array of ip addresses in that region. The benchmark distributes processes evenly in machines across different regions. In case all nodes are located in one region, use one key to list all the ip addresses. **Note that the total number of ip addresses listed must be at least as much as the number of processes being run in the benchmark. To run multiple processes on a single machine, list the ip address multiple times in the array. For example, to run two processes on the machine with ip `10.43.0.231`, list it twice in the array as ["10.43.0.231","10.43.0.231",..].** We suggest giving each process 2 CPU cores and 4 GigaBytes of RAM. For example, if you have a machine with 8 cores and 16 GB of RAM, you can run four processes in it by listing its ip address four times in the array. 
 ```
 {
     "Utah": ["10.43.0.231",”10.43.0.231”,"10.43.0.232","10.43.0.233"],
