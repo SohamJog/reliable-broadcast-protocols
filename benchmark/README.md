@@ -74,7 +74,7 @@ The third block (`repo`) contains the information regarding the repository's nam
 ```json
 "repo": {
     "name": "add-rbc",
-    "url": "https://github.com/SohamJog/add-rbc"",
+    "url": "https://github.com/SohamJog/add-rbc",
     "branch": "main"
 },
 ```
