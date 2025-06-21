@@ -166,6 +166,16 @@ impl Context {
 
         // if 𝑓 𝑟𝑎𝑔𝑚𝑒𝑛𝑡𝑠ℎ𝑎𝑠ℎ𝑒𝑠 [(𝑖𝑑, 𝑐)] ≥ 2𝑡 + 1 then
         if hash_shares.len() >= 2 * self.num_faults + 1 {
+            // check if the length of data of all shares is consistent
+            let data_length = hash_shares[0].data.len();
+            if !hash_shares
+                .iter()
+                .all(|share| share.data.len() == data_length)
+            {
+                log::warn!("Inconsistent data lengths in hash shares, cannot proceed");
+                return;
+            }
+
             let mut f = FEC::new(self.num_faults, self.num_nodes).unwrap();
 
             let d_prime = match f.decode(vec![], hash_shares.clone()) {
@@ -178,14 +188,22 @@ impl Context {
 
             // if 𝐻(𝐷′) = 𝑐 then
             if do_hash(&d_prime) == msg.c {
+                // log::info!("show D′: {:?} instance id: {}", d_prime, instance_id);
                 let valid_hashes: HashSet<Hash> = d_prime
                     .chunks(32) // assuming each hash is 32 bytes
+                    // .filter(|chunk| chunk.len() == 32) // ensure correct length
                     .map(|chunk| {
+                        // log::info!("chunk: {:?}. instance_id: {}", chunk, instance_id);
                         let mut arr = [0u8; 32];
                         arr.copy_from_slice(chunk);
                         arr
                     })
                     .collect();
+
+                // log::info!(
+                //     "D′ reconstructed successfully with {} valid hashes",
+                //     valid_hashes.len()
+                // );
 
                 let data_shares = rbc_context
                     .fragments_data

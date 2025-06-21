@@ -31,8 +31,15 @@ impl Context {
             let output = |s: Share| {
                 pi[s.number] = s.clone(); // deep copy
             };
+            // log::info!(
+            //     "d_hashes before encoding: {:?}, instance_id: {}",
+            //     d_hashes,
+            //     instance_id
+            // );
             assert!(d_hashes.len() > 0, "Message content is empty");
-            if let Err(e) = f.encode(&bincode::serialize(&d_hashes).unwrap(), output) {
+            let encoded: Vec<u8> = d_hashes.iter().flatten().copied().collect();
+
+            if let Err(e) = f.encode(&bincode::serialize(&encoded).unwrap(), output) {
                 log::info!("Encoding failed with error: {:?}", e);
             }
             //f.encode(&msg_content, output)?;
