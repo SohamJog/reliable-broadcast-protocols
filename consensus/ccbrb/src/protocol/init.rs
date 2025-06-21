@@ -4,6 +4,7 @@ use crate::{Context, ProtMsg};
 use consensus::get_shards;
 use crypto::hash::do_hash;
 use reed_solomon_rs::fec::fec::Share;
+use types::WrapperMsg;
 
 impl Context {
     pub async fn start_init(&mut self, input_msg: Vec<u8>, instance_id: usize) {
@@ -17,36 +18,62 @@ impl Context {
         );
         rbc_context.status = Status::INIT;
 
-        // Parameters for encoding
         let n = self.num_nodes;
         let k = self.num_faults + 1;
-        let shards = get_shards(input_msg.clone(), k, n); // Vec<Vec<u8>>
+        // d
+        let shards = get_shards(input_msg.clone(), k, n - k);
         assert_eq!(shards.len(), n);
 
-        // Compute D = [H(d₁), ..., H(dₙ)]
+        // D
         let d_hashes: Vec<_> = shards.iter().map(|s| do_hash(s)).collect();
 
-        // Create Share from our own shard
+        // Store our own share
         let my_share = Share {
             number: self.myid,
             data: shards[self.myid].clone(),
         };
-
         rbc_context.fragment = my_share.clone();
 
-        // Construct SendMsg
-        let send_msg = SendMsg {
+        // Send ourselves our own message
+        let my_msg = SendMsg {
             id: instance_id as u64,
             d_j: my_share,
             d_hashes: d_hashes.clone(),
             origin: self.myid,
         };
+        self.handle_init(my_msg.clone(), instance_id).await;
 
-        // Handle own INIT
-        self.handle_init(send_msg.clone(), instance_id).await;
+        // Send correct share to each replica
+        for (replica, sec_key) in self.sec_key_map.clone() {
+            if replica == self.myid {
+                continue;
+            }
 
-        // Broadcast INIT
-        self.broadcast(ProtMsg::Init(send_msg, self.myid)).await;
+            let share = if self.byz {
+                // If we're Byzantine, corrupt the share
+                Share {
+                    number: replica,
+                    data: vec![0; shards[replica].len()],
+                }
+            } else {
+                Share {
+                    number: replica,
+                    data: shards[replica].clone(),
+                }
+            };
+
+            let send_msg = SendMsg {
+                id: instance_id as u64,
+                d_j: share,
+                d_hashes: d_hashes.clone(),
+                origin: self.myid,
+            };
+
+            let protmsg = ProtMsg::Init(send_msg, self.myid);
+            let wrapper = WrapperMsg::new(protmsg, self.myid, &sec_key);
+            let cancel_handler = self.net_send.send(replica, wrapper).await;
+            self.add_cancel_handler(cancel_handler);
+        }
     }
 
     pub async fn handle_init(&mut self, msg: SendMsg, instance_id: usize) {
@@ -54,11 +81,20 @@ impl Context {
 
         assert_eq!(msg.d_hashes.len(), self.num_nodes);
 
+        // H(di)
         let computed_hash = do_hash(&msg.d_j.data);
+        // Di
         let expected_hash = msg.d_hashes[self.myid];
 
         if computed_hash != expected_hash {
-            println!("Hash mismatch in INIT: ignoring");
+            log::info!("Hash mismatch in INIT: ignoring.");
+            log::info!(
+                "Computed hash: {:?}, Expected hashes: {:?}, instance_id: {}",
+                computed_hash,
+                msg.d_hashes,
+                instance_id
+            );
+
             return;
         }
 

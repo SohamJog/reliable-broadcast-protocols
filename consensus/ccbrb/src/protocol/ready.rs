@@ -3,39 +3,44 @@ use crate::{
     Context, Status,
 };
 use bincode;
-use consensus::reconstruct_data;
+use consensus::{get_shards, reconstruct_data};
 use crypto::hash::{do_hash, Hash};
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::{Share, FEC};
+use std::collections::HashSet;
 use types::WrapperMsg;
 
 impl Context {
-    pub async fn start_ready(&mut self, c: Hash, instance_id: usize) {
+    pub async fn start_ready(&mut self, c: Hash, pi_i: Share, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         if rbc_context.status != Status::READY {
             return;
         }
 
-        let d_hashes = match rbc_context.fragments_hashes.get(&(instance_id as u64, c)) {
-            Some(v) => v.clone(),
-            None => {
-                log::info!("No hash vector found for instance {}", instance_id);
-                return;
-            }
-        };
+        // let d_hashes = match rbc_context.fragments_hashes.get(&(instance_id as u64, c)) {
+        //     Some(v) => v.clone(),
+        //     None => {
+        //         log::info!("No hash vector found for instance {}", instance_id);
+        //         return;
+        //     }
+        // };
 
-        let pi_i_bytes = match bincode::serialize(&d_hashes) {
-            Ok(bytes) => bytes,
-            Err(e) => {
-                log::info!("Serialization failed: {}", e);
-                return;
-            }
-        };
+        // rbc_context
+        //     .fragments_hashes
+        //     .insert((instance_id as u64, c), d_hashes.clone());
+
+        // let pi_i_bytes = match bincode::serialize(&d_hashes) {
+        //     Ok(bytes) => bytes,
+        //     Err(e) => {
+        //         log::info!("Serialization failed: {}", e);
+        //         return;
+        //     }
+        // };
 
         let ready_msg = ReadyMsg {
             id: instance_id as u64,
             c,
-            pi_i: pi_i_bytes.clone(),
+            pi_i: pi_i.clone(),
             origin: self.myid,
         };
 
@@ -51,138 +56,205 @@ impl Context {
             self.add_cancel_handler(cancel_handler);
         }
     }
+
     pub async fn handle_ready(&mut self, msg: ReadyMsg, instance_id: usize) {
-        let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        if rbc_context.status == Status::TERMINATED {
-            return;
-        }
+        let mut cancel_handlers = vec![];
 
-        let key = (instance_id as u64, msg.c);
-        let hashes = rbc_context.fragments_hashes.entry(key).or_default();
-        let senders = rbc_context.ready_senders.entry(msg.c).or_default();
-
-        if !senders.insert(msg.origin) {
-            return;
-        }
-
-        let pi_i: Vec<Hash> = match bincode::deserialize(&msg.pi_i) {
-            Ok(h) => h,
-            Err(_) => {
-                log::info!("Failed to deserialize πᵢ");
+        {
+            let rbc_context = self.rbc_context.entry(instance_id).or_default();
+            if rbc_context.status == Status::TERMINATED {
                 return;
             }
-        };
 
-        hashes.push(bincode::serialize(&pi_i).unwrap());
+            // pub struct ReadyMsg {
+            //     pub id: u64,
+            //     pub c: Hash,
+            //     pub pi_i: Share,
+            //     pub origin: Replica,
+            // }
+            let pi_i = msg.pi_i.clone();
 
-        if hashes.len() >= self.num_nodes - self.num_faults {
-            let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
+            let pi_i_serialized = bincode::serialize(&pi_i).unwrap();
+            // Track senders per (c, πᵢ)
+            let pi_i_map = rbc_context.ready_senders.entry(msg.c).or_default();
+            let senders = pi_i_map.entry(pi_i_serialized.clone()).or_default();
 
-            // ECCDec(t + 1, e, hashes)
-            let recovered = f
-                .decode(
-                    vec![],
-                    hashes
-                        .iter()
-                        .enumerate()
-                        .map(|(i, h)| Share {
-                            number: i,
-                            data: h.clone(),
-                        })
-                        .collect(),
-                )
-                .map_err(|e| {
-                    Box::new(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e.to_string(),
-                    )) as Box<dyn std::error::Error + Send + Sync>
-                });
+            if !senders.insert(msg.origin) {
+                return; // duplicate
+            }
 
-            match recovered {
-                Ok(serialized_d) => {
-                    let decoded_d: Vec<Hash> = match bincode::deserialize(&serialized_d) {
-                        Ok(vec) => vec,
-                        Err(_) => {
-                            log::info!("Failed to deserialize D'");
-                            return;
-                        }
-                    };
+            let hashes_entry = rbc_context
+                .fragments_hashes
+                .entry((instance_id as u64, msg.c))
+                .or_default();
+            hashes_entry.push(pi_i.clone());
 
-                    let computed_c = do_hash(&serialized_d);
-                    if computed_c != msg.c {
-                        log::info!("c mismatch: H(D') != c");
-                        return;
-                    }
+            //if (not yet sent ⟨𝑖𝑑, READY, 𝑐⟩ and received 𝑡 + 1 ⟨READY⟩ messages with the same 𝑐) then
 
-                    // Wait for t+1 fragments whose hash ∈ D'
-                    let mut fragment_options = vec![None; self.num_nodes];
-                    for (h, shares) in rbc_context.received_readys.iter() {
-                        if *h == msg.c {
-                            for share in shares {
-                                if decoded_d.get(share.number) == Some(&do_hash(&share.data)) {
-                                    fragment_options[share.number] = Some(share.data.clone());
-                                }
-                            }
-                        }
-                    }
+            if !rbc_context.sent_ready {
+                let threshold = self.num_faults + 1;
+                for (pi_i_bytes, ready_senders) in pi_i_map.iter() {
+                    //  wait for 𝑡 + 1 ⟨ECHO⟩ messages with the same 𝑐 and 𝜋�
+                    if ready_senders.len() >= threshold {
+                        if let Some(echo_map) = rbc_context.echo_senders.get(&msg.c) {
+                            if let Some(echo_senders) = echo_map.get(pi_i_bytes) {
+                                if echo_senders.len() >= threshold {
+                                    rbc_context.sent_ready = true;
+                                    // let pi_i: Share = bincode::deserialize(pi_i_bytes).unwrap();
+                                    let pi_i: Share = bincode::deserialize(pi_i_bytes).unwrap();
+                                    let pi_i_cloned = pi_i.clone();
 
-                    let mut fragments = fragment_options.clone();
-                    let threshold = self.num_faults + 1;
-                    let available = fragments.iter().filter(|s| s.is_some()).count();
+                                    let ready_msg = ReadyMsg {
+                                        id: instance_id as u64,
+                                        c: msg.c,
+                                        pi_i: pi_i.clone(),
+                                        origin: self.myid,
+                                    };
 
-                    if available < threshold {
-                        log::info!("Not enough valid fragments to reconstruct M");
-                        return;
-                    }
+                                    let proto = ProtMsg::Ready(ready_msg.clone(), instance_id);
 
-                    // Reconstruct M (ECDec)
-                    match reconstruct_data(
-                        &mut fragments,
-                        self.num_faults + 1,
-                        self.num_nodes - self.num_faults - 1,
-                    ) {
-                        Ok(_) => {
-                            let message = fragments
-                                .into_iter()
-                                .flatten()
-                                .flatten()
-                                .collect::<Vec<u8>>();
+                                    for (replica, sec_key) in self.sec_key_map.clone() {
+                                        if replica == self.myid {
+                                            // Directly mutate context without awaiting recursion
+                                            // let pi_i_serialized = bincode::serialize(&pi_i).unwrap();
+                                            let pi_i_serialized =
+                                                bincode::serialize(&pi_i_cloned.clone()).unwrap();
 
-                            // re-encode to verify against D'
-                            let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
-                            let mut hashes_match = true;
+                                            let local_ready_map =
+                                                rbc_context.ready_senders.entry(msg.c).or_default();
+                                            let local_senders =
+                                                local_ready_map.entry(pi_i_serialized).or_default();
+                                            local_senders.insert(self.myid);
 
-                            for (i, block) in message.chunks(message.len() / threshold).enumerate()
-                            {
-                                let hash = do_hash(block);
-                                if decoded_d.get(i) != Some(&hash) {
-                                    hashes_match = false;
+                                            let hashes_entry = rbc_context
+                                                .fragments_hashes
+                                                .entry((instance_id as u64, msg.c))
+                                                .or_default();
+                                            hashes_entry.push(pi_i_cloned.clone());
+                                            continue;
+                                        }
+
+                                        let wrapper =
+                                            WrapperMsg::new(proto.clone(), self.myid, &sec_key);
+                                        let cancel_handler =
+                                            self.net_send.send(replica, wrapper).await;
+                                        cancel_handlers.push(cancel_handler);
+                                    }
+
                                     break;
                                 }
                             }
-
-                            if hashes_match {
-                                rbc_context.output_message = message.clone();
-                                rbc_context.status = Status::TERMINATED;
-                                log::info!("Terminated instance {} with output", instance_id);
-                                self.terminate(message).await;
-                            } else {
-                                log::info!("Hash mismatch on reconstructed message: ⊥");
-                                rbc_context.status = Status::TERMINATED;
-                                let _ = rbc_context;
-                                self.terminate(vec![]).await;
-                            }
-                        }
-                        Err(e) => {
-                            log::info!("Reconstruction failed: {}", e);
-                            rbc_context.status = Status::TERMINATED;
-                            let _ = rbc_context;
-                            self.terminate(vec![]).await; // ⊥
                         }
                     }
                 }
-                Err(e) => {
-                    log::info!("Error decoding D': {:?}", e);
+            }
+        }
+        // drop(&mut *rbc_context);
+
+        for handler in cancel_handlers {
+            self.add_cancel_handler(handler);
+        }
+
+        let rbc_context = self.rbc_context.entry(instance_id).or_default();
+
+        // Online error correction
+        let hash_shares = rbc_context
+            .fragments_hashes
+            .get(&(instance_id as u64, msg.c))
+            .cloned()
+            .unwrap_or_default();
+
+        // if 𝑓 𝑟𝑎𝑔𝑚𝑒𝑛𝑡𝑠ℎ𝑎𝑠ℎ𝑒𝑠 [(𝑖𝑑, 𝑐)] ≥ 2𝑡 + 1 then
+        if hash_shares.len() >= 2 * self.num_faults + 1 {
+            let mut f = FEC::new(self.num_faults, self.num_nodes).unwrap();
+
+            let d_prime = match f.decode(vec![], hash_shares.clone()) {
+                Ok(data) => data,
+                Err(_) => {
+                    log::warn!("Could not reconstruct D′ from hash shares, trying higher error tolerance later");
+                    return; // e → e + 1 logic happens in later retries
+                }
+            };
+
+            // if 𝐻(𝐷′) = 𝑐 then
+            if do_hash(&d_prime) == msg.c {
+                let valid_hashes: HashSet<Hash> = d_prime
+                    .chunks(32) // assuming each hash is 32 bytes
+                    .map(|chunk| {
+                        let mut arr = [0u8; 32];
+                        arr.copy_from_slice(chunk);
+                        arr
+                    })
+                    .collect();
+
+                let data_shares = rbc_context
+                    .fragments_data
+                    .get(&(instance_id as u64, msg.c))
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|share| valid_hashes.contains(&do_hash(&share.data)))
+                    .collect::<Vec<_>>();
+
+                // wait for t+1 ⟨ECHO⟩ message where 𝐻(𝑑𝑗) ∈ 𝐷′and filter 𝑓𝑟𝑎𝑔𝑚𝑒𝑛𝑡𝑠𝑑𝑎𝑡𝑎[(𝑖𝑑, 𝑐)] accordingly
+                if data_shares.len() < self.num_faults + 1 {
+                    return; // wait for more
+                }
+
+                let mut input_shares: Vec<Option<Vec<u8>>> = vec![None; self.num_nodes];
+
+                for share in &data_shares {
+                    input_shares[share.number] = Some(share.data.clone());
+                }
+
+                if reconstruct_data(
+                    &mut input_shares,
+                    self.num_nodes - self.num_faults,
+                    self.num_faults,
+                )
+                .is_err()
+                {
+                    log::warn!("reconstruct_data failed");
+                    return;
+                }
+
+                let mut reconstructed_data = vec![];
+                for maybe in input_shares.iter().take(self.num_nodes - self.num_faults) {
+                    if let Some(ref block) = maybe {
+                        reconstructed_data.extend_from_slice(block);
+                    }
+                }
+
+                // re encoding d′ = ECEnc(M)
+
+                let recomputed_shards = get_shards(
+                    reconstructed_data.clone(),
+                    self.num_nodes - self.num_faults,
+                    self.num_faults,
+                );
+                let d_prime_hashes: Vec<Hash> = d_prime
+                    .chunks(32)
+                    .map(|chunk| {
+                        let mut h = [0u8; 32];
+                        h.copy_from_slice(chunk);
+                        h
+                    })
+                    .collect();
+
+                let all_match = recomputed_shards
+                    .iter()
+                    .take(d_prime_hashes.len()) // in case D′ is shorter
+                    .zip(d_prime_hashes)
+                    .all(|(shard, expected_hash)| do_hash(shard) == expected_hash);
+
+                if all_match {
+                    log::info!(" M is verified and consistent, delivering...");
+                    rbc_context.status = Status::TERMINATED;
+                    self.terminate(reconstructed_data).await;
+                    return;
+                } else {
+                    log::warn!(" M failed verification against D′, discarding");
+                    return;
                 }
             }
         }

@@ -9,8 +9,34 @@ use types::WrapperMsg;
 
 impl Context {
     pub async fn start_echo(&mut self, msg: SendMsg, instance_id: usize) {
-        let d_hashes = msg.d_hashes.clone(); // D = [H(d₁), ..., H(dₙ)]
+        let d_hashes = msg.d_hashes.clone(); // D = [H(d1), ..., H(dn)]
         let c = do_hash(&bincode::serialize(&d_hashes).unwrap()); // c = H(D)
+
+        let f = match FEC::new(self.num_faults, self.num_nodes) {
+            Ok(f) => f,
+            Err(e) => {
+                log::info!("FEC initialization failed with error: {:?}", e);
+                return;
+            }
+        };
+
+        let mut pi: Vec<Share> = vec![
+            Share {
+                number: 0,
+                data: vec![]
+            };
+            self.num_nodes
+        ];
+        {
+            let output = |s: Share| {
+                pi[s.number] = s.clone(); // deep copy
+            };
+            assert!(d_hashes.len() > 0, "Message content is empty");
+            if let Err(e) = f.encode(&bincode::serialize(&d_hashes).unwrap(), output) {
+                log::info!("Encoding failed with error: {:?}", e);
+            }
+            //f.encode(&msg_content, output)?;
+        }
 
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         rbc_context.fragment = msg.d_j.clone();
@@ -25,11 +51,11 @@ impl Context {
             } else {
                 msg.d_j.clone()
             };
-
+            // send ⟨𝑖𝑑, ECHO, (𝑑𝑖, 𝜋𝑗, 𝑐)⟩ to node 𝑗
             let echo_msg = EchoMsg {
                 id: instance_id as u64,
                 d_i: share,
-                pi_i: bincode::serialize(&d_hashes).unwrap(), // πᵢ
+                pi_i: pi[replica].clone(), // πj
                 c,
                 origin: self.myid,
             };
@@ -51,22 +77,29 @@ impl Context {
     pub async fn handle_echo(&mut self, echo_msg: EchoMsg, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
 
-        let senders = rbc_context.echo_senders.entry(echo_msg.c).or_default();
+        // Serialize πᵢ
+        let pi_i_serialized = bincode::serialize(&echo_msg.pi_i).unwrap();
+
+        // Track senders per (c, πᵢ)
+        let pi_i_map = rbc_context.echo_senders.entry(echo_msg.c).or_default();
+        let senders = pi_i_map.entry(pi_i_serialized.clone()).or_default();
+
         if !senders.insert(echo_msg.origin) {
             return; // duplicate
         }
 
-        *rbc_context
-            .received_echo_count
-            .entry(echo_msg.c)
-            .or_default() += 1;
+        // Store dᵢ
+        let data_entry = rbc_context
+            .fragments_data
+            .entry((instance_id as u64, echo_msg.c))
+            .or_default();
+        data_entry.push(echo_msg.d_i.clone());
 
-        let (max_count, mode_content) = rbc_context.get_max_echo_count();
-        if max_count >= self.num_nodes - self.num_faults && rbc_context.status == Status::ECHO {
-            if let Some(hash) = mode_content {
-                rbc_context.status = Status::READY;
-                self.start_ready(hash, instance_id).await;
-            }
+        // Check if 2t + 1 ECHOs for same (c, πᵢ)
+        if senders.len() >= 2 * self.num_faults + 1 && rbc_context.status == Status::ECHO {
+            rbc_context.status = Status::READY;
+            self.start_ready(echo_msg.c, echo_msg.pi_i.clone(), instance_id)
+                .await;
         }
     }
 }

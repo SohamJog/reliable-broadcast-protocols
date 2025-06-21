@@ -17,7 +17,7 @@ pub struct SendMsg {
 pub struct EchoMsg {
     pub id: u64,
     pub d_i: Share,
-    pub pi_i: Vec<u8>, // Proof pi[i]
+    pub pi_i: Share, // Proof pi[i]
     pub c: Hash,
     pub origin: Replica,
 }
@@ -26,7 +26,7 @@ pub struct EchoMsg {
 pub struct ReadyMsg {
     pub id: u64,
     pub c: Hash,
-    pub pi_i: Vec<u8>,
+    pub pi_i: Share,
     pub origin: Replica,
 }
 
