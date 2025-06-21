@@ -209,38 +209,33 @@ impl Context {
                 Ok(data) => data,
                 Err(_) => {
                     log::warn!("Could not reconstruct D′ from hash shares, trying higher error tolerance later");
-                    return; // e → e + 1 logic happens in later retries
+                    return;
                 }
             };
 
-            log::info!(
-                "D′ reconstructed successfully for instance_id: {}, c: {:?}",
-                instance_id, msg.c
-            );
-
             // if 𝐻(𝐷′) = 𝑐 then
             if do_hash(&d_prime) == msg.c {
-
                 log::info!(
                     "D′ matches c for instance_id: {}, c: {:?}",
-                    instance_id, msg.c
+                    instance_id,
+                    msg.c
                 );
-                // log::info!("show D′: {:?} instance id: {}", d_prime, instance_id);
-                let valid_hashes: HashSet<Hash> = d_prime
-                    .chunks(32) // assuming each hash is 32 bytes
-                    // .filter(|chunk| chunk.len() == 32) // ensure correct length
-                    .map(|chunk| {
-                        // log::info!("chunk: {:?}. instance_id: {}", chunk, instance_id);
-                        let mut arr = [0u8; 32];
-                        arr.copy_from_slice(chunk);
-                        arr
-                    })
-                    .collect();
 
-                // log::info!(
-                //     "D′ reconstructed successfully with {} valid hashes",
-                //     valid_hashes.len()
-                // );
+                let d_hashes: Vec<Hash> = match bincode::deserialize(&d_prime) {
+                    Ok(decoded) => decoded,
+                    Err(e) => {
+                        log::warn!("Failed to deserialize D′ into d_hashes: {:?}", e);
+                        return;
+                    }
+                };
+
+                log::info!(
+                    "after decoding D′ hashes: {:?} for instance_id: {}, c: {:?}",
+                    d_hashes,
+                    instance_id,
+                    msg.c
+                );
+                let valid_hashes: HashSet<Hash> = d_hashes.into_iter().collect();
 
                 let data_shares = rbc_context
                     .fragments_data
@@ -293,20 +288,28 @@ impl Context {
                     self.num_nodes - self.num_faults,
                     self.num_faults,
                 );
-                let d_prime_hashes: Vec<Hash> = d_prime
-                    .chunks(32)
-                    .map(|chunk| {
-                        let mut h = [0u8; 32];
-                        h.copy_from_slice(chunk);
-                        h
-                    })
+
+                let d_prime_hashes: Vec<Hash> = bincode::deserialize(&d_prime).unwrap();
+
+                // print d prime hashes, recomputed shards, reconstructed data, instance id
+
+                // let all_match = recomputed_shards
+                //     .iter()
+                //     .take(d_prime_hashes.len()) // in case D′ is shorter
+                //     .zip(d_prime_hashes)
+                //     .all(|(shard, expected_hash)| do_hash(shard) == expected_hash);
+                let recomputed_hashes: Vec<Hash> = recomputed_shards
+                    .iter()
+                    .map(|shard| do_hash(shard))
                     .collect();
 
-                let all_match = recomputed_shards
-                    .iter()
-                    .take(d_prime_hashes.len()) // in case D′ is shorter
-                    .zip(d_prime_hashes)
-                    .all(|(shard, expected_hash)| do_hash(shard) == expected_hash);
+                log::info!(
+                    "after D′ hashes: {:?}, recomputed hashes: {:?}",
+                    d_prime_hashes,
+                    recomputed_hashes
+                );
+
+                let all_match = recomputed_hashes == d_prime_hashes;
 
                 if all_match {
                     log::info!(" M is verified and consistent, delivering...");

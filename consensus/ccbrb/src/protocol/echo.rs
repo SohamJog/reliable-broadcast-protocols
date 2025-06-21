@@ -9,6 +9,20 @@ use types::WrapperMsg;
 
 impl Context {
     pub async fn start_echo(&mut self, msg: SendMsg, instance_id: usize) {
+        log::info!(
+            "ECHO: Starting echo for instance id: {}, myid: {}, msg: {:?}",
+            instance_id,
+            self.myid,
+            msg.clone(),
+        );
+        // let rbc_context = self.rbc_context.entry(instance_id).or_default();
+        // let status = &rbc_context.status;
+        // assert!(
+        //     *status == Status::INIT,
+        //     "ECHO: Status is not INIT for instance id: {:?}. found {:?}",
+        //     instance_id,
+        //     status
+        // );
         let d_hashes = msg.d_hashes.clone(); // D = [H(d1), ..., H(dn)]
         let c = do_hash(&bincode::serialize(&d_hashes).unwrap()); // c = H(D)
 
@@ -31,15 +45,16 @@ impl Context {
             let output = |s: Share| {
                 pi[s.number] = s.clone(); // deep copy
             };
-            // log::info!(
-            //     "d_hashes before encoding: {:?}, instance_id: {}",
-            //     d_hashes,
-            //     instance_id
-            // );
+            log::info!(
+                "d_hashes before encoding: {:?}, instance_id: {}",
+                d_hashes,
+                instance_id
+            );
             assert!(d_hashes.len() > 0, "Message content is empty");
-            let encoded: Vec<u8> = d_hashes.iter().flatten().copied().collect();
+            // let encoded: Vec<u8> = d_hashes.iter().flatten().copied().collect();
+            let serialized_hashes = bincode::serialize(&d_hashes).unwrap();
 
-            if let Err(e) = f.encode(&bincode::serialize(&encoded).unwrap(), output) {
+            if let Err(e) = f.encode(&serialized_hashes, output) {
                 log::info!("Encoding failed with error: {:?}", e);
             }
             //f.encode(&msg_content, output)?;
