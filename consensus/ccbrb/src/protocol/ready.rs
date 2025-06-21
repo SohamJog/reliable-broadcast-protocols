@@ -262,14 +262,17 @@ impl Context {
                 for share in &data_shares {
                     input_shares[share.number] = Some(share.data.clone());
                 }
+                log::info!(
+                    "Input shares initialized with {:?} slots for instance_id: {}, c: {:?}",
+                    input_shares,
+                    instance_id,
+                    msg.c
+                );
 
-                if reconstruct_data(
-                    &mut input_shares,
-                    self.num_nodes - self.num_faults,
-                    self.num_faults,
-                )
-                .is_err()
-                {
+                let n = self.num_nodes;
+                let k = self.num_faults + 1;
+
+                if reconstruct_data(&mut input_shares, k, n - k).is_err() {
                     log::warn!("reconstruct_data failed");
                     return;
                 }
@@ -280,8 +283,6 @@ impl Context {
                         reconstructed_data.extend_from_slice(block);
                     }
                 }
-
-                // re encoding d′ = ECEnc(M)
 
                 let recomputed_shards = get_shards(
                     reconstructed_data.clone(),
