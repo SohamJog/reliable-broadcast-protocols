@@ -8,6 +8,7 @@ use crypto::hash::{do_hash, Hash};
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::{Share, FEC};
 use std::collections::HashSet;
+use types::Replica;
 use types::WrapperMsg;
 
 impl Context {
@@ -66,12 +67,6 @@ impl Context {
                 return;
             }
 
-            // pub struct ReadyMsg {
-            //     pub id: u64,
-            //     pub c: Hash,
-            //     pub pi_i: Share,
-            //     pub origin: Replica,
-            // }
             let pi_i = msg.pi_i.clone();
 
             let pi_i_serialized = bincode::serialize(&pi_i).unwrap();
@@ -91,13 +86,40 @@ impl Context {
 
             //if (not yet sent ⟨𝑖𝑑, READY, 𝑐⟩ and received 𝑡 + 1 ⟨READY⟩ messages with the same 𝑐) then
 
+            // print all 3 conditions: ready senders, echo senders, and pi_i_map and instance id all in one line
+
             if !rbc_context.sent_ready {
+                log::info!("Not sent ready yet, instance_id: {}", instance_id);
                 let threshold = self.num_faults + 1;
-                for (pi_i_bytes, ready_senders) in pi_i_map.iter() {
-                    //  wait for 𝑡 + 1 ⟨ECHO⟩ messages with the same 𝑐 and 𝜋�
-                    if ready_senders.len() >= threshold {
-                        if let Some(echo_map) = rbc_context.echo_senders.get(&msg.c) {
+                let mut all_ready_senders: HashSet<Replica> = HashSet::new();
+                for senders in pi_i_map.values() {
+                    all_ready_senders.extend(senders.iter().copied());
+                }
+
+                //  wait for 𝑡 + 1 ⟨ECHO⟩ messages with the same 𝑐 and 𝜋�
+                // log::info!(
+                //     "Checking ready senders: {:?} for c: {:?}, pi_i: {:?}, instance_id: {}",
+                //     ready_senders,
+                //     msg.c,
+                //     pi_i_bytes,
+                //     instance_id
+                // );
+                if all_ready_senders.len() >= threshold {
+                    // log::info!(
+                    //     "ready senders is more than threshold. len: {}, instance id: {}",
+                    //     ready_senders.len(),
+                    //     instance_id
+                    // );
+
+                    if let Some(echo_map) = rbc_context.echo_senders.get(&msg.c) {
+                        for (pi_i_bytes, echo_senders) in echo_map {
                             if let Some(echo_senders) = echo_map.get(pi_i_bytes) {
+                                log::info!(
+                                    "Echo senders for c: {:?}, pi_i: {:?}, instance_id: {}",
+                                    msg.c,
+                                    pi_i_bytes,
+                                    instance_id
+                                );
                                 if echo_senders.len() >= threshold {
                                     rbc_context.sent_ready = true;
                                     // let pi_i: Share = bincode::deserialize(pi_i_bytes).unwrap();
@@ -140,7 +162,6 @@ impl Context {
                                             self.net_send.send(replica, wrapper).await;
                                         cancel_handlers.push(cancel_handler);
                                     }
-
                                     break;
                                 }
                             }
