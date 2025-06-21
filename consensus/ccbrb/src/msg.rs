@@ -32,7 +32,7 @@ pub struct ReadyMsg {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ProtMsg {
-    Init(SendMsg),
-    Echo(EchoMsg),
-    Ready(ReadyMsg),
+    Init(SendMsg, Replica),
+    Echo(EchoMsg, Replica),
+    Ready(ReadyMsg, Replica),
 }

@@ -132,7 +132,7 @@ impl Context {
 
                 // Match to access inner message
                 match &mut byz_msg {
-                    ProtMsg::Init(msg) => {
+                    ProtMsg::Init(msg,_) => {
                         msg.d_j.data = vec![0; msg.d_j.data.len()];
                     }
                     _ => {}

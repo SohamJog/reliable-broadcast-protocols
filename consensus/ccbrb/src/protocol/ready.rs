@@ -1,6 +1,7 @@
 // TODO: Call broadcast
-use crate::{Context, ProtMsg, ShareMsg, Status};
-use crypto::hash::Hash;
+use crate::{msg::ReadyMsg, Context, ProtMsg, Status};
+use bincode;
+use crypto::hash::{do_hash, Hash};
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::FEC;
 use reed_solomon_rs::fec::fec::*;
@@ -8,155 +9,128 @@ use tokio::time::{sleep, Duration};
 use types::WrapperMsg;
 
 impl Context {
-    pub async fn ready_self(&mut self, hash: Hash, instance_id: usize) {
+    pub async fn start_ready(&mut self, c: Hash, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        let status = &rbc_context.status;
-        if *status != Status::READY {
+        if rbc_context.status != Status::READY {
             return;
         }
-        // assert!(
-        //     *status == Status::READY,
-        //     "Ready Self: Status is not READY for instance id: {:?}",
-        //     instance_id
-        // );
-        let fragment = rbc_context.fragment.clone();
-        let _ = rbc_context;
-        let msg = ShareMsg {
-            share: fragment,
-            hash,
-            origin: self.myid,
-        };
-        self.handle_ready(msg, instance_id).await;
-    }
 
-    pub async fn start_ready(self: &mut Context, hash: Hash, instance_id: usize) {
-        // Draft a message
-        let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        let status = &rbc_context.status;
-        if *status != Status::READY {
-            return;
-        }
-        // assert!(
-        //     *status == Status::READY,
-        //     "Start Ready: Status is not READY for instance id: {:?}",
-        //     instance_id
-        // );
-        let fragment = rbc_context.fragment.clone();
-        let _ = rbc_context;
-        let msg = ShareMsg {
-            share: if self.byz {
-                Share {
-                    number: self.myid,
-                    data: vec![0; fragment.data.len()],
-                }
-            } else {
-                fragment.clone()
-            },
-            hash,
-            origin: self.myid,
-        };
-        // Wrap the message in a type
-        let protocol_msg = ProtMsg::Ready(msg, instance_id);
-
-        // Sleep to simulate network delay
-        // sleep(Duration::from_millis(50)).await;
-        // Echo to every node the encoding corresponding to the replica id
-        let sec_key_map = self.sec_key_map.clone();
-        if !self.crash {
-            for (replica, sec_key) in sec_key_map.into_iter() {
-                if replica == self.myid {
-                    self.ready_self(hash, instance_id).await;
-                    continue;
-                }
-
-                let wrapper_msg =
-                    WrapperMsg::new(protocol_msg.clone(), self.myid, &sec_key.as_slice());
-                let cancel_handler: CancelHandler<Acknowledgement> =
-                    self.net_send.send(replica, wrapper_msg).await;
-                self.add_cancel_handler(cancel_handler);
+        let d_hashes = match rbc_context.fragments_hashes.get(&(instance_id as u64, c)) {
+            Some(v) => v.clone(),
+            None => {
+                log::info!("No hash vector found for instance {}", instance_id);
+                return;
             }
+        };
+
+        let pi_i_bytes = match bincode::serialize(&d_hashes) {
+            Ok(bytes) => bytes,
+            Err(e) => {
+                log::info!("Serialization failed: {}", e);
+                return;
+            }
+        };
+
+        let ready_msg = ReadyMsg {
+            id: instance_id as u64,
+            c,
+            pi_i: pi_i_bytes.clone(),
+            origin: self.myid,
+        };
+
+        let proto = ProtMsg::Ready(ready_msg.clone(), instance_id);
+        for (replica, sec_key) in self.sec_key_map.clone() {
+            if replica == self.myid {
+                self.handle_ready(ready_msg.clone(), instance_id).await;
+                continue;
+            }
+
+            let wrapper = WrapperMsg::new(proto.clone(), self.myid, &sec_key);
+            let cancel_handler = self.net_send.send(replica, wrapper).await;
+            self.add_cancel_handler(cancel_handler);
         }
     }
-
-    pub async fn handle_ready(self: &mut Context, msg: ShareMsg, instance_id: usize) {
-        assert!(
-            msg.share.data.len() != 0,
-            "Received empty share for instance id: {:?}",
-            instance_id
-        );
+    pub async fn handle_ready(&mut self, msg: ReadyMsg, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         if rbc_context.status == Status::TERMINATED {
             return;
         }
-        if rbc_context.status == Status::OUTPUT {
-            let output_message = rbc_context.output_message.clone();
-            rbc_context.status = Status::TERMINATED;
-            let _ = rbc_context;
-            log::info!("Terminating for instance id: {:?}", instance_id);
-            self.terminate(output_message).await;
+
+        let key = (instance_id as u64, msg.c);
+        let hashes = rbc_context.fragments_hashes.entry(key).or_default();
+        let senders = rbc_context.ready_senders.entry(msg.c).or_default();
+
+        if !senders.insert(msg.origin) {
             return;
         }
-        // log::info!("Received {:?} as ready", msg);
 
-        let senders = rbc_context
-            .ready_senders
-            .entry(msg.hash.clone())
-            .or_default();
+        let pi_i: Vec<Hash> = match bincode::deserialize(&msg.pi_i) {
+            Ok(h) => h,
+            Err(_) => {
+                log::info!("Failed to deserialize πᵢ");
+                return;
+            }
+        };
 
-        if senders.insert(msg.origin) {
-            let shares = rbc_context
-                .received_readys
-                .entry(msg.hash.clone())
-                .or_default();
-            shares.push(msg.share);
+        // hashes.push(pi_i.clone());
+        hashes.push(bincode::serialize(&pi_i).unwrap());
 
-            let (max_shares_count, max_shares_hash) = rbc_context.get_max_ready_count();
+        if hashes.len() >= self.num_nodes - self.num_faults {
+            let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
 
-            // If we have enough shares for a hash, prepare for error correction
-            if max_shares_count >= self.num_nodes - self.num_faults {
-                if let Some(hash) = max_shares_hash {
-                    let shares_for_correction = rbc_context.received_readys.get(&hash).unwrap();
-                    assert!(
-                        shares_for_correction.len() >= self.num_nodes - self.num_faults,
-                        "Not enough shares for error correction"
-                    );
-                    let f = match FEC::new(self.num_faults, self.num_nodes) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            log::info!("FEC initialization failed with error: {:?}", e);
-                            return;
-                        }
+            let recovered: Result<Vec<u8>, _> = f.decode(
+                vec![],
+                hashes
+                    .iter()
+                    .map(|h| {
+                        let data = bincode::serialize(h).unwrap();
+                        Share { number: 0, data } // number doesn't matter for decoding
+                    })
+                    .collect(),
+            );
+
+            match recovered {
+                Ok(serialized_d) => {
+                    let decoded_d: Vec<Hash> = match bincode::deserialize(&serialized_d) {
+                        Ok(vec) => vec,
+                        Err(_) => return,
                     };
-                    // log::info!("Decoding {:?}", shares_for_correction.to_vec());
-                    // assert that the length of each share for correction is the same
-                    // for share in shares_for_correction.iter() {
-                    //     assert!(
-                    //         share.data.len() == shares_for_correction[0].data.len(),
-                    //         "Share length mismatch, 0: {:?}, index: {:?}",
-                    //         shares_for_correction[0].data.len(),
-                    //         share.data.len()
-                    //     );
-                    // }
-                    match f.decode([].to_vec(), shares_for_correction.to_vec()) {
-                        Ok(data) => {
-                            if data.len() != 0 {
-                                log::info!("Outputting: for instance id: {:?}", instance_id);
-                                rbc_context.output_message = data;
-                                rbc_context.status = Status::OUTPUT;
+
+                    let computed_c = do_hash(&serialized_d);
+                    if computed_c == msg.c {
+                        // We now trust D. Let's collect fragments from echo messages.
+                        let mut fragments = vec![None; self.num_nodes];
+                        for (h, shares) in rbc_context.received_readys.iter() {
+                            if *h == msg.c {
+                                for share in shares {
+                                    fragments[share.number] = Some(share.clone());
+                                }
                             }
                         }
-                        Err(e) => {
-                            log::info!("Decoding failed with error: {}", e.to_string());
+
+                        let valid_fragments: Vec<Share> = fragments.into_iter().flatten().collect();
+
+                        if valid_fragments.len() < self.num_nodes - self.num_faults {
+                            log::info!("Not enough valid fragments for decoding");
+                            return;
+                        }
+
+                        let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
+                        match f.decode(vec![], valid_fragments) {
+                            Ok(message) => {
+                                rbc_context.output_message = message.clone();
+                                rbc_context.status = Status::TERMINATED;
+                                log::info!("Terminated instance {}", instance_id);
+                                self.terminate(message).await;
+                            }
+                            Err(e) => {
+                                log::info!("Final decode failed: {}", e.to_string());
+                            }
                         }
                     }
-                    if rbc_context.status == Status::OUTPUT {
-                        let output_message = rbc_context.output_message.clone();
-                        rbc_context.status = Status::TERMINATED;
-                        let _ = rbc_context;
-                        log::info!("Terminating for instance id: {:?}", instance_id);
-                        self.terminate(output_message).await;
-                        return;
-                    }
+                }
+                Err(e) => {
+                    log::info!("Hash vector decoding failed: {:?}", e);
                 }
             }
         }
