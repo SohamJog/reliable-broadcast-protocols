@@ -1,11 +1,12 @@
-// TODO: Call broadcast
-use crate::{msg::ReadyMsg, Context, ProtMsg, Status};
+use crate::{
+    msg::{ProtMsg, ReadyMsg},
+    Context, Status,
+};
 use bincode;
+use consensus::reconstruct_data;
 use crypto::hash::{do_hash, Hash};
 use network::{plaintcp::CancelHandler, Acknowledgement};
-use reed_solomon_rs::fec::fec::FEC;
-use reed_solomon_rs::fec::fec::*;
-use tokio::time::{sleep, Duration};
+use reed_solomon_rs::fec::fec::{Share, FEC};
 use types::WrapperMsg;
 
 impl Context {
@@ -72,65 +73,116 @@ impl Context {
             }
         };
 
-        // hashes.push(pi_i.clone());
         hashes.push(bincode::serialize(&pi_i).unwrap());
 
         if hashes.len() >= self.num_nodes - self.num_faults {
             let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
 
-            let recovered: Result<Vec<u8>, _> = f.decode(
-                vec![],
-                hashes
-                    .iter()
-                    .map(|h| {
-                        let data = bincode::serialize(h).unwrap();
-                        Share { number: 0, data } // number doesn't matter for decoding
-                    })
-                    .collect(),
-            );
+            // ECCDec(t + 1, e, hashes)
+            let recovered = f
+                .decode(
+                    vec![],
+                    hashes
+                        .iter()
+                        .enumerate()
+                        .map(|(i, h)| Share {
+                            number: i,
+                            data: h.clone(),
+                        })
+                        .collect(),
+                )
+                .map_err(|e| {
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        e.to_string(),
+                    )) as Box<dyn std::error::Error + Send + Sync>
+                });
 
             match recovered {
                 Ok(serialized_d) => {
                     let decoded_d: Vec<Hash> = match bincode::deserialize(&serialized_d) {
                         Ok(vec) => vec,
-                        Err(_) => return,
+                        Err(_) => {
+                            log::info!("Failed to deserialize D'");
+                            return;
+                        }
                     };
 
                     let computed_c = do_hash(&serialized_d);
-                    if computed_c == msg.c {
-                        // We now trust D. Let's collect fragments from echo messages.
-                        let mut fragments = vec![None; self.num_nodes];
-                        for (h, shares) in rbc_context.received_readys.iter() {
-                            if *h == msg.c {
-                                for share in shares {
-                                    fragments[share.number] = Some(share.clone());
+                    if computed_c != msg.c {
+                        log::info!("c mismatch: H(D') != c");
+                        return;
+                    }
+
+                    // Wait for t+1 fragments whose hash ∈ D'
+                    let mut fragment_options = vec![None; self.num_nodes];
+                    for (h, shares) in rbc_context.received_readys.iter() {
+                        if *h == msg.c {
+                            for share in shares {
+                                if decoded_d.get(share.number) == Some(&do_hash(&share.data)) {
+                                    fragment_options[share.number] = Some(share.data.clone());
                                 }
                             }
                         }
+                    }
 
-                        let valid_fragments: Vec<Share> = fragments.into_iter().flatten().collect();
+                    let mut fragments = fragment_options.clone();
+                    let threshold = self.num_faults + 1;
+                    let available = fragments.iter().filter(|s| s.is_some()).count();
 
-                        if valid_fragments.len() < self.num_nodes - self.num_faults {
-                            log::info!("Not enough valid fragments for decoding");
-                            return;
-                        }
+                    if available < threshold {
+                        log::info!("Not enough valid fragments to reconstruct M");
+                        return;
+                    }
 
-                        let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
-                        match f.decode(vec![], valid_fragments) {
-                            Ok(message) => {
+                    // Reconstruct M (ECDec)
+                    match reconstruct_data(
+                        &mut fragments,
+                        self.num_faults + 1,
+                        self.num_nodes - self.num_faults - 1,
+                    ) {
+                        Ok(_) => {
+                            let message = fragments
+                                .into_iter()
+                                .flatten()
+                                .flatten()
+                                .collect::<Vec<u8>>();
+
+                            // re-encode to verify against D'
+                            let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
+                            let mut hashes_match = true;
+
+                            for (i, block) in message.chunks(message.len() / threshold).enumerate()
+                            {
+                                let hash = do_hash(block);
+                                if decoded_d.get(i) != Some(&hash) {
+                                    hashes_match = false;
+                                    break;
+                                }
+                            }
+
+                            if hashes_match {
                                 rbc_context.output_message = message.clone();
                                 rbc_context.status = Status::TERMINATED;
-                                log::info!("Terminated instance {}", instance_id);
+                                log::info!("Terminated instance {} with output", instance_id);
                                 self.terminate(message).await;
+                            } else {
+                                log::info!("Hash mismatch on reconstructed message: ⊥");
+                                rbc_context.status = Status::TERMINATED;
+                                let _ = rbc_context;
+                                self.terminate(vec![]).await;
                             }
-                            Err(e) => {
-                                log::info!("Final decode failed: {}", e.to_string());
-                            }
+                        }
+                        Err(e) => {
+                            log::info!("Reconstruction failed: {}", e);
+                            rbc_context.status = Status::TERMINATED;
+                            let _ = rbc_context;
+                            self.terminate(vec![]).await; // ⊥
                         }
                     }
                 }
                 Err(e) => {
-                    log::info!("Hash vector decoding failed: {:?}", e);
+                    log::info!("Error decoding D': {:?}", e);
                 }
             }
         }
