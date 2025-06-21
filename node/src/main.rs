@@ -75,24 +75,49 @@ async fn main() -> Result<()> {
     let exit_tx;
     match vss_type {
         "rbc" => {
-            exit_tx =
-                rbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal, node_crash)
-                    .unwrap();
+            exit_tx = rbc::Context::spawn(
+                config,
+                input_value.as_bytes().to_vec(),
+                node_normal,
+                node_crash,
+            )
+            .unwrap();
         }
         "addrbc" => {
-            exit_tx =
-                addrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal, node_crash)
-                    .unwrap();
+            exit_tx = addrbc::Context::spawn(
+                config,
+                input_value.as_bytes().to_vec(),
+                node_normal,
+                node_crash,
+            )
+            .unwrap();
+        }
+        "ccbrb" => {
+            exit_tx = ccbrb::Context::spawn(
+                config,
+                input_value.as_bytes().to_vec(),
+                node_normal,
+                node_crash,
+            )
+            .unwrap();
         }
         "ctrbc" => {
-            exit_tx =
-                ctrbc::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal, node_crash)
-                    .unwrap();
+            exit_tx = ctrbc::Context::spawn(
+                config,
+                input_value.as_bytes().to_vec(),
+                node_normal,
+                node_crash,
+            )
+            .unwrap();
         }
         "avid" => {
-            exit_tx =
-                avid::Context::spawn(config, input_value.as_bytes().to_vec(), node_normal,  node_crash)
-                    .unwrap();
+            exit_tx = avid::Context::spawn(
+                config,
+                input_value.as_bytes().to_vec(),
+                node_normal,
+                node_crash,
+            )
+            .unwrap();
         }
         "sync" => {
             let f_str = syncer_file.to_string();
@@ -105,7 +130,12 @@ async fn main() -> Result<()> {
                 idx += 1;
             }
             //let client_addr = net_map.get(&(net_map.len()-1)).unwrap();
-            exit_tx = Syncer::spawn(net_map, config.client_addr.clone(),broadcast_msgs_file.to_string()).unwrap();
+            exit_tx = Syncer::spawn(
+                net_map,
+                config.client_addr.clone(),
+                broadcast_msgs_file.to_string(),
+            )
+            .unwrap();
         }
         _ => {
             log::error!(

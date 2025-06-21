@@ -1,0 +1,42 @@
+[92mFetching latency logs...[0m
+ids:  defaultdict(<class 'list'>, {'us-east-1': ['i-0a4b3885e17448260', 'i-0c4eec8e0164d1edd', 'i-0ba3d207fc895f9f2', 'i-04108350d9380f6bd', 'i-0df251446e2d810f9'], 'us-east-2': ['i-070fc1671f94830f6', 'i-0ba15a4bc0cc9d0b3', 'i-0eff0f0666041d13c', 'i-02e0726f6e4f2203c', 'i-05b4733ad52cd9759'], 'us-west-1': ['i-0fbb882e8a81376ee', 'i-08a40ac092d481454', 'i-0fc97b771b4bc093e', 'i-0839df62ff8351650', 'i-042aba7e9bde315b3'], 'us-west-2': ['i-0f414c2556d86356c', 'i-0f0e4797ec8daad24', 'i-01a1ef4f5a3830362', 'i-0ebce40e0199c9d25', 'i-0a716ba86ec7eb816'], 'ca-central-1': ['i-0a4518cbfec5e14f6', 'i-0caf001b81baaac01', 'i-06e5926e0ed28d9ec', 'i-0fbdb776ed321f0a2', 'i-0bbfa50c74bdfd081'], 'eu-west-1': ['i-0202b8167d0ec0f1c', 'i-027fb898d03ddaf65', 'i-0cb39af2219c3c69e', 'i-0e21a62976fd9b7b8', 'i-0537c2653005deb35'], 'ap-southeast-1': ['i-0fcfa426bb567e7f3', 'i-03ba064d6f415b32e', 'i-0f153fb5b6512fc0a', 'i-09b610a0287f838d5', 'i-0ca8135947f2ccc53'], 'ap-northeast-1': ['i-0dde023d8cdb84231', 'i-001ff403a2fb0e176', 'i-086efacbc579f733d', 'i-0ce95270821429c30', 'i-0f6b725b05a4935a6']})
+ips:  defaultdict(<class 'list'>, {'us-east-1': ['54.81.132.142', '3.81.131.172', '18.206.221.247', '54.152.144.78', '54.198.145.61'], 'us-east-2': ['3.129.43.221', '3.14.65.244', '18.117.240.170', '18.222.202.102', '18.219.98.238'], 'us-west-1': ['54.177.1.58', '54.193.84.74', '54.241.56.160', '52.53.203.111', '54.241.210.19'], 'us-west-2': ['35.94.81.101', '35.81.164.71', '44.248.164.92', '44.244.105.10', '35.86.71.40'], 'ca-central-1': ['16.52.29.107', '3.99.216.170', '15.223.245.20', '35.183.45.94', '3.99.214.242'], 'eu-west-1': ['34.244.26.27', '34.246.134.163', '108.129.205.155', '52.212.237.120', '34.246.182.13'], 'ap-southeast-1': ['13.212.150.207', '13.212.57.89', '47.129.157.216', '54.255.209.249', '13.228.170.105'], 'ap-northeast-1': ['35.72.162.157', '35.75.0.213', '3.114.16.21', '18.179.52.211', '18.176.93.38']})
+self.clients:  OrderedDict([('us-east-1', <botocore.client.EC2 object at 0x107c08dc0>), ('us-east-2', <botocore.client.EC2 object at 0x10449cdf0>), ('us-west-1', <botocore.client.EC2 object at 0x107d619f0>), ('us-west-2', <botocore.client.EC2 object at 0x107e0c100>), ('ca-central-1', <botocore.client.EC2 object at 0x107eae800>), ('eu-west-1', <botocore.client.EC2 object at 0x107f60f10>), ('ap-southeast-1', <botocore.client.EC2 object at 0x107ff35e0>), ('ap-northeast-1', <botocore.client.EC2 object at 0x1080a1cf0>)])
+{} {} 40 40
+Running latency script on: 54.81.132.142
+[92mAverage Latencies by Message Size[0m
+0 bytes: 2113.108 ms
+256 bytes: 856.438 ms
+1024 bytes: 542.889 ms
+4096 bytes: 960.763 ms
+16384 bytes: 1518.478 ms
+65536 bytes: 1827.8 ms
+{256: 856.438, 1024: 542.889, 4096: 960.763, 16384: 1518.478, 65536: 1827.8, 0: 2113.108}
+[92mFetching latency logs...[0m
+ids:  defaultdict(<class 'list'>, {'us-east-1': ['i-0a4b3885e17448260', 'i-0c4eec8e0164d1edd', 'i-0ba3d207fc895f9f2', 'i-04108350d9380f6bd', 'i-0df251446e2d810f9'], 'us-east-2': ['i-070fc1671f94830f6', 'i-0ba15a4bc0cc9d0b3', 'i-0eff0f0666041d13c', 'i-02e0726f6e4f2203c', 'i-05b4733ad52cd9759'], 'us-west-1': ['i-0fbb882e8a81376ee', 'i-08a40ac092d481454', 'i-0fc97b771b4bc093e', 'i-0839df62ff8351650', 'i-042aba7e9bde315b3'], 'us-west-2': ['i-0f414c2556d86356c', 'i-0f0e4797ec8daad24', 'i-01a1ef4f5a3830362', 'i-0ebce40e0199c9d25', 'i-0a716ba86ec7eb816'], 'ca-central-1': ['i-0a4518cbfec5e14f6', 'i-0caf001b81baaac01', 'i-06e5926e0ed28d9ec', 'i-0fbdb776ed321f0a2', 'i-0bbfa50c74bdfd081'], 'eu-west-1': ['i-0202b8167d0ec0f1c', 'i-027fb898d03ddaf65', 'i-0cb39af2219c3c69e', 'i-0e21a62976fd9b7b8', 'i-0537c2653005deb35'], 'ap-southeast-1': ['i-0fcfa426bb567e7f3', 'i-03ba064d6f415b32e', 'i-0f153fb5b6512fc0a', 'i-09b610a0287f838d5', 'i-0ca8135947f2ccc53'], 'ap-northeast-1': ['i-0dde023d8cdb84231', 'i-001ff403a2fb0e176', 'i-086efacbc579f733d', 'i-0ce95270821429c30', 'i-0f6b725b05a4935a6']})
+ips:  defaultdict(<class 'list'>, {'us-east-1': ['54.81.132.142', '3.81.131.172', '18.206.221.247', '54.152.144.78', '54.198.145.61'], 'us-east-2': ['3.129.43.221', '3.14.65.244', '18.117.240.170', '18.222.202.102', '18.219.98.238'], 'us-west-1': ['54.177.1.58', '54.193.84.74', '54.241.56.160', '52.53.203.111', '54.241.210.19'], 'us-west-2': ['35.94.81.101', '35.81.164.71', '44.248.164.92', '44.244.105.10', '35.86.71.40'], 'ca-central-1': ['16.52.29.107', '3.99.216.170', '15.223.245.20', '35.183.45.94', '3.99.214.242'], 'eu-west-1': ['34.244.26.27', '34.246.134.163', '108.129.205.155', '52.212.237.120', '34.246.182.13'], 'ap-southeast-1': ['13.212.150.207', '13.212.57.89', '47.129.157.216', '54.255.209.249', '13.228.170.105'], 'ap-northeast-1': ['35.72.162.157', '35.75.0.213', '3.114.16.21', '18.179.52.211', '18.176.93.38']})
+self.clients:  OrderedDict([('us-east-1', <botocore.client.EC2 object at 0x109370dc0>), ('us-east-2', <botocore.client.EC2 object at 0x105c04df0>), ('us-west-1', <botocore.client.EC2 object at 0x1094c99f0>), ('us-west-2', <botocore.client.EC2 object at 0x109574100>), ('ca-central-1', <botocore.client.EC2 object at 0x109616800>), ('eu-west-1', <botocore.client.EC2 object at 0x1096c4f10>), ('ap-southeast-1', <botocore.client.EC2 object at 0x10975f5e0>), ('ap-northeast-1', <botocore.client.EC2 object at 0x109809cf0>)])
+{} {} 40 40
+Running latency script on: 54.81.132.142
+[92mAverage Latencies by Message Size[0m
+0 bytes: 2175.997 ms
+256 bytes: 853.556 ms
+1024 bytes: 533.215 ms
+4096 bytes: 849.68 ms
+16384 bytes: 1430.112 ms
+65536 bytes: 1750.863 ms
+{256: 853.556, 1024: 533.215, 4096: 849.68, 16384: 1430.112, 65536: 1750.863, 0: 2175.997}
+[92mFetching latency logs...[0m
+ids:  defaultdict(<class 'list'>, {'us-east-1': ['i-0a4b3885e17448260', 'i-0c4eec8e0164d1edd', 'i-0ba3d207fc895f9f2', 'i-04108350d9380f6bd', 'i-0df251446e2d810f9'], 'us-east-2': ['i-070fc1671f94830f6', 'i-0ba15a4bc0cc9d0b3', 'i-0eff0f0666041d13c', 'i-02e0726f6e4f2203c', 'i-05b4733ad52cd9759'], 'us-west-1': ['i-0fbb882e8a81376ee', 'i-08a40ac092d481454', 'i-0fc97b771b4bc093e', 'i-0839df62ff8351650', 'i-042aba7e9bde315b3'], 'us-west-2': ['i-0f414c2556d86356c', 'i-0f0e4797ec8daad24', 'i-01a1ef4f5a3830362', 'i-0ebce40e0199c9d25', 'i-0a716ba86ec7eb816'], 'ca-central-1': ['i-0a4518cbfec5e14f6', 'i-0caf001b81baaac01', 'i-06e5926e0ed28d9ec', 'i-0fbdb776ed321f0a2', 'i-0bbfa50c74bdfd081'], 'eu-west-1': ['i-0202b8167d0ec0f1c', 'i-027fb898d03ddaf65', 'i-0cb39af2219c3c69e', 'i-0e21a62976fd9b7b8', 'i-0537c2653005deb35'], 'ap-southeast-1': ['i-0fcfa426bb567e7f3', 'i-03ba064d6f415b32e', 'i-0f153fb5b6512fc0a', 'i-09b610a0287f838d5', 'i-0ca8135947f2ccc53'], 'ap-northeast-1': ['i-0dde023d8cdb84231', 'i-001ff403a2fb0e176', 'i-086efacbc579f733d', 'i-0ce95270821429c30', 'i-0f6b725b05a4935a6']})
+ips:  defaultdict(<class 'list'>, {'us-east-1': ['54.81.132.142', '3.81.131.172', '18.206.221.247', '54.152.144.78', '54.198.145.61'], 'us-east-2': ['3.129.43.221', '3.14.65.244', '18.117.240.170', '18.222.202.102', '18.219.98.238'], 'us-west-1': ['54.177.1.58', '54.193.84.74', '54.241.56.160', '52.53.203.111', '54.241.210.19'], 'us-west-2': ['35.94.81.101', '35.81.164.71', '44.248.164.92', '44.244.105.10', '35.86.71.40'], 'ca-central-1': ['16.52.29.107', '3.99.216.170', '15.223.245.20', '35.183.45.94', '3.99.214.242'], 'eu-west-1': ['34.244.26.27', '34.246.134.163', '108.129.205.155', '52.212.237.120', '34.246.182.13'], 'ap-southeast-1': ['13.212.150.207', '13.212.57.89', '47.129.157.216', '54.255.209.249', '13.228.170.105'], 'ap-northeast-1': ['35.72.162.157', '35.75.0.213', '3.114.16.21', '18.179.52.211', '18.176.93.38']})
+self.clients:  OrderedDict([('us-east-1', <botocore.client.EC2 object at 0x1056b4dc0>), ('us-east-2', <botocore.client.EC2 object at 0x101c04df0>), ('us-west-1', <botocore.client.EC2 object at 0x10580d9f0>), ('us-west-2', <botocore.client.EC2 object at 0x1058b8100>), ('ca-central-1', <botocore.client.EC2 object at 0x10595a800>), ('eu-west-1', <botocore.client.EC2 object at 0x105a08f10>), ('ap-southeast-1', <botocore.client.EC2 object at 0x105a9f5e0>), ('ap-northeast-1', <botocore.client.EC2 object at 0x105b4dcf0>)])
+{} {} 40 40
+Running latency script on: 54.81.132.142
+[92mAverage Latencies by Message Size[0m
+0 bytes: 1797.04 ms
+256 bytes: 862.619 ms
+1024 bytes: 525.657 ms
+4096 bytes: 721.029 ms
+16384 bytes: 1085.259 ms
+65536 bytes: 1408.188 ms
+{256: 862.619, 1024: 525.657, 4096: 721.029, 16384: 1085.259, 65536: 1408.188, 0: 1797.04}

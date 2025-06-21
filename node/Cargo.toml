@@ -10,6 +10,7 @@ bincode = "1"
 config = { package = "config", path="../config"}
 rbc = {package = "rbc",path="../consensus/rbc"}
 addrbc = {package = "addrbc",path="../consensus/addrbc"}
+ccbrb = {package = "ccbrb", path="../consensus/ccbrb"}
 ctrbc = {package = "ctrbc",path="../consensus/ctrbc"}
 avid = {package= "avid", path="../consensus/avid"}
 consensus = { package = "consensus", path="../consensus"}

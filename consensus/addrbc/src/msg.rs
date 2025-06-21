@@ -30,6 +30,10 @@ this is how the rbc protocol works
 */
 
 /*
+This is how CTRBC works:
+*/
+
+/*
 * This is how Das et al's algorithm works:
 * 1. Dealer sends message to everybody <M, init>
 * 2. After receiving M,
