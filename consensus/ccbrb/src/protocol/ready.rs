@@ -187,6 +187,12 @@ impl Context {
 
         // if 𝑓 𝑟𝑎𝑔𝑚𝑒𝑛𝑡𝑠ℎ𝑎𝑠ℎ𝑒𝑠 [(𝑖𝑑, 𝑐)] ≥ 2𝑡 + 1 then
         if hash_shares.len() >= 2 * self.num_faults + 1 {
+            log::info!(
+                "Received enough hash shares for instance_id: {}, c: {:?}, count: {}",
+                instance_id,
+                msg.c,
+                hash_shares.len()
+            );
             // check if the length of data of all shares is consistent
             let data_length = hash_shares[0].data.len();
             if !hash_shares
@@ -207,8 +213,18 @@ impl Context {
                 }
             };
 
+            log::info!(
+                "D′ reconstructed successfully for instance_id: {}, c: {:?}",
+                instance_id, msg.c
+            );
+
             // if 𝐻(𝐷′) = 𝑐 then
             if do_hash(&d_prime) == msg.c {
+
+                log::info!(
+                    "D′ matches c for instance_id: {}, c: {:?}",
+                    instance_id, msg.c
+                );
                 // log::info!("show D′: {:?} instance id: {}", d_prime, instance_id);
                 let valid_hashes: HashSet<Hash> = d_prime
                     .chunks(32) // assuming each hash is 32 bytes
@@ -236,6 +252,12 @@ impl Context {
                     .collect::<Vec<_>>();
 
                 // wait for t+1 ⟨ECHO⟩ message where 𝐻(𝑑𝑗) ∈ 𝐷′and filter 𝑓𝑟𝑎𝑔𝑚𝑒𝑛𝑡𝑠𝑑𝑎𝑡𝑎[(𝑖𝑑, 𝑐)] accordingly
+                log::info!(
+                    "Data shares count after filtering: {} for instance_id: {}, c: {:?}",
+                    data_shares.len(),
+                    instance_id,
+                    msg.c
+                );
                 if data_shares.len() < self.num_faults + 1 {
                     return; // wait for more
                 }
