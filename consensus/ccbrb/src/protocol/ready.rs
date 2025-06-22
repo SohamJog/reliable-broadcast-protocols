@@ -257,6 +257,14 @@ impl Context {
                     return; // wait for more
                 }
 
+                // print actual data shares
+                log::info!(
+                    "Data shares for instance_id: {}, c: {:?}: {:?}",
+                    instance_id,
+                    msg.c,
+                    data_shares
+                );
+
                 let mut input_shares: Vec<Option<Vec<u8>>> = vec![None; self.num_nodes];
 
                 for share in &data_shares {
@@ -277,28 +285,36 @@ impl Context {
                     return;
                 }
 
-                let mut reconstructed_data = vec![];
-                for maybe in input_shares.iter().take(self.num_nodes - self.num_faults) {
-                    if let Some(ref block) = maybe {
-                        reconstructed_data.extend_from_slice(block);
-                    }
-                }
+                // let mut reconstructed_data = vec![];
+                // for maybe in input_shares
+                //     .iter()
+                //     .take(self.num_nodes - self.num_faults - 1)
+                // {
+                //     if let Some(ref block) = maybe {
+                //         reconstructed_data.extend_from_slice(block);
+                //     }
+                // }
 
-                let recomputed_shards = get_shards(
-                    reconstructed_data.clone(),
-                    self.num_nodes - self.num_faults,
-                    self.num_faults,
-                );
+                // let recomputed_shards = get_shards(&mut input_shares, k, n - k);
+                let recomputed_shards = input_shares
+                    .into_iter()
+                    .map(|maybe| {
+                        maybe.unwrap_or_else(|| {
+                            log::warn!("Missing data in input shares, returning empty shard");
+                            vec![]
+                        })
+                    })
+                    .collect::<Vec<_>>();
 
                 let d_prime_hashes: Vec<Hash> = bincode::deserialize(&d_prime).unwrap();
 
-                // print d prime hashes, recomputed shards, reconstructed data, instance id
+                log::info!(
+                    "Recomputed shards: {:?} for instance_id: {}, c: {:?}",
+                    recomputed_shards,
+                    instance_id,
+                    msg.c
+                );
 
-                // let all_match = recomputed_shards
-                //     .iter()
-                //     .take(d_prime_hashes.len()) // in case D′ is shorter
-                //     .zip(d_prime_hashes)
-                //     .all(|(shard, expected_hash)| do_hash(shard) == expected_hash);
                 let recomputed_hashes: Vec<Hash> = recomputed_shards
                     .iter()
                     .map(|shard| do_hash(shard))
@@ -315,7 +331,8 @@ impl Context {
                 if all_match {
                     log::info!(" M is verified and consistent, delivering...");
                     rbc_context.status = Status::TERMINATED;
-                    self.terminate(reconstructed_data).await;
+                    let output_message = recomputed_shards.concat();
+                    self.terminate(output_message).await;
                     return;
                 } else {
                     log::warn!(" M failed verification against D′, discarding");

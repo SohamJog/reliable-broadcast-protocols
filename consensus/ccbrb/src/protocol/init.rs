@@ -24,8 +24,22 @@ impl Context {
         let shards = get_shards(input_msg.clone(), k, n - k);
         assert_eq!(shards.len(), n);
 
+        // print input message and shards. input message and shards for instance_id:
+        log::info!(
+            "INIT: Input message for instance_id {}: {:?}",
+            instance_id,
+            input_msg
+        );
+        log::info!("INIT: Shards for instance_id {}: {:?}", instance_id, shards);
+
         // D
         let d_hashes: Vec<_> = shards.iter().map(|s| do_hash(s)).collect();
+
+        log::info!(
+            "INIT: D hashes for instance_id {}: {:?}",
+            instance_id,
+            d_hashes
+        );
 
         // Store our own share
         let my_share = Share {
