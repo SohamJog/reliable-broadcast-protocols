@@ -18,26 +18,6 @@ impl Context {
             return;
         }
 
-        // let d_hashes = match rbc_context.fragments_hashes.get(&(instance_id as u64, c)) {
-        //     Some(v) => v.clone(),
-        //     None => {
-        //         log::info!("No hash vector found for instance {}", instance_id);
-        //         return;
-        //     }
-        // };
-
-        // rbc_context
-        //     .fragments_hashes
-        //     .insert((instance_id as u64, c), d_hashes.clone());
-
-        // let pi_i_bytes = match bincode::serialize(&d_hashes) {
-        //     Ok(bytes) => bytes,
-        //     Err(e) => {
-        //         log::info!("Serialization failed: {}", e);
-        //         return;
-        //     }
-        // };
-
         let ready_msg = ReadyMsg {
             id: instance_id as u64,
             c,
@@ -46,6 +26,9 @@ impl Context {
         };
 
         let proto = ProtMsg::Ready(ready_msg.clone(), instance_id);
+        if self.crash {
+            return;
+        }
         for (replica, sec_key) in self.sec_key_map.clone() {
             if replica == self.myid {
                 self.handle_ready(ready_msg.clone(), instance_id).await;
@@ -96,30 +79,10 @@ impl Context {
                     all_ready_senders.extend(senders.iter().copied());
                 }
 
-                //  wait for 𝑡 + 1 ⟨ECHO⟩ messages with the same 𝑐 and 𝜋�
-                // log::info!(
-                //     "Checking ready senders: {:?} for c: {:?}, pi_i: {:?}, instance_id: {}",
-                //     ready_senders,
-                //     msg.c,
-                //     pi_i_bytes,
-                //     instance_id
-                // );
                 if all_ready_senders.len() >= threshold {
-                    // log::info!(
-                    //     "ready senders is more than threshold. len: {}, instance id: {}",
-                    //     ready_senders.len(),
-                    //     instance_id
-                    // );
-
                     if let Some(echo_map) = rbc_context.echo_senders.get(&msg.c) {
                         for (pi_i_bytes, echo_senders) in echo_map {
                             if let Some(echo_senders) = echo_map.get(pi_i_bytes) {
-                                // log::info!(
-                                //     "Echo senders for c: {:?}, pi_i: {:?}, instance_id: {}",
-                                //     msg.c,
-                                //     pi_i_bytes,
-                                //     instance_id
-                                // );
                                 if echo_senders.len() >= threshold {
                                     rbc_context.sent_ready = true;
                                     // let pi_i: Share = bincode::deserialize(pi_i_bytes).unwrap();
@@ -137,8 +100,6 @@ impl Context {
 
                                     for (replica, sec_key) in self.sec_key_map.clone() {
                                         if replica == self.myid {
-                                            // Directly mutate context without awaiting recursion
-                                            // let pi_i_serialized = bincode::serialize(&pi_i).unwrap();
                                             let pi_i_serialized =
                                                 bincode::serialize(&pi_i_cloned.clone()).unwrap();
 
