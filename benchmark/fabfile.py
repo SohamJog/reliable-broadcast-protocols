@@ -12,14 +12,14 @@ from benchmark.utils import PathMaker
 # === Global Benchmark Parameters ===
 DEFAULT_BENCH_PARAMS = {
     'faults': 0,
-    'nodes': [8],
+    'nodes': [40],
     'workers': 1,
     'collocate': True,
     'rate': [10_000, 110_000],
     'tx_size': 512,
     'duration': 300,
     'runs': 2,
-    'protocol': 'addrbc',
+    'protocol': 'ccbrb',
     'bfile': 'longer_test_msgs.txt',
     'byzantine': False,
     'crash': False,
@@ -61,7 +61,7 @@ def log_v(ctx, debug=True):
 # The parameter nodes determines how many instances to create in each AWS region. That is, if you specified 5 AWS regions as in the example of step 3, setting nodes=2 will creates a total of 16 machines:
 
 @task
-def create(ctx, nodes=1):
+def create(ctx, nodes=5):
     ''' Create a testbed '''
     try:
         InstanceManager.make().create_instances(nodes)

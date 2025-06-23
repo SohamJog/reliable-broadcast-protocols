@@ -11,6 +11,12 @@ impl Context {
     pub async fn start_echo(&mut self, msg: SendMsg, instance_id: usize) {
         let d_hashes = msg.d_hashes.clone(); // D = [H(d1), ..., H(dn)]
         let c = do_hash(&bincode::serialize(&d_hashes).unwrap()); // c = H(D)
+        // log::info!(
+        //     "Starting ECHO for instance_id {} with c: {:?}, d_hashes: {:?}",
+        //     instance_id,
+        //     c,
+        //     d_hashes
+        // );
 
         let f = match FEC::new(self.num_faults, self.num_nodes) {
             Ok(f) => f,
@@ -45,6 +51,8 @@ impl Context {
             }
             //f.encode(&msg_content, output)?;
         }
+
+        // log::info!("Encoded shares for instance_id {}: {:?}", instance_id, pi);
 
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         rbc_context.fragment = msg.d_j.clone();

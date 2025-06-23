@@ -165,14 +165,39 @@ impl Context {
             }
 
             let mut f = FEC::new(self.num_faults, self.num_nodes).unwrap();
+            // log::info!(
+            //     "About to decode D′ for instance_id: {}, c: {:?}, hash_shares: {:?}",
+            //     instance_id,
+            //     msg.c,
+            //     hash_shares.clone()
+            // );
 
-            let d_prime = match f.decode(vec![], hash_shares.clone()) {
+            let mut d_prime = match f.decode(vec![], hash_shares.clone()) {
                 Ok(data) => data,
                 Err(_) => {
                     log::warn!("Could not reconstruct D′ from hash shares, trying higher error tolerance later");
                     return;
                 }
             };
+
+            // while d prime is not empty and the last element is 95, pop the last element
+            while !d_prime.is_empty() && d_prime.last() == Some(&95) {
+                d_prime.pop();
+            }
+
+            // log do hash d prime and msg.c
+            // log::info!(
+            //     "D′ decoded for instance_id: {}, c: {:?}, d_prime: {:?}",
+            //     instance_id,
+            //     msg.c,
+            //     &d_prime
+            // );
+            // log::info!(
+            //     "Comparing hash of d prime and msg.c for instance_id: {}, c: {:?}, d_prime: {:?}",
+            //     instance_id,
+            //     msg.c,
+            //     do_hash(&d_prime)
+            // );
 
             // if 𝐻(𝐷′) = 𝑐 then
             if do_hash(&d_prime) == msg.c {
