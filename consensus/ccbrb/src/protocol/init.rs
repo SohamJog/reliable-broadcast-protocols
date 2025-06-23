@@ -25,21 +25,21 @@ impl Context {
         assert_eq!(shards.len(), n);
 
         // print input message and shards. input message and shards for instance_id:
-        log::info!(
-            "INIT: Input message for instance_id {}: {:?}",
-            instance_id,
-            input_msg
-        );
-        log::info!("INIT: Shards for instance_id {}: {:?}", instance_id, shards);
+        // log::info!(
+        //     "INIT: Input message for instance_id {}: {:?}",
+        //     instance_id,
+        //     input_msg
+        // );
+        // log::info!("INIT: Shards for instance_id {}: {:?}", instance_id, shards);
 
         // D
         let d_hashes: Vec<_> = shards.iter().map(|s| do_hash(s)).collect();
 
-        log::info!(
-            "INIT: D hashes for instance_id {}: {:?}",
-            instance_id,
-            d_hashes
-        );
+        // log::info!(
+        //     "INIT: D hashes for instance_id {}: {:?}",
+        //     instance_id,
+        //     d_hashes
+        // );
 
         // Store our own share
         let my_share = Share {
@@ -102,12 +102,12 @@ impl Context {
 
         if computed_hash != expected_hash {
             log::info!("Hash mismatch in INIT: ignoring.");
-            log::info!(
-                "Computed hash: {:?}, Expected hashes: {:?}, instance_id: {}",
-                computed_hash,
-                msg.d_hashes,
-                instance_id
-            );
+            // log::info!(
+            //     "Computed hash: {:?}, Expected hashes: {:?}, instance_id: {}",
+            //     computed_hash,
+            //     msg.d_hashes,
+            //     instance_id
+            // );
 
             return;
         }

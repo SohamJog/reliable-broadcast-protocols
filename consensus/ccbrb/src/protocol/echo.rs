@@ -9,12 +9,12 @@ use types::WrapperMsg;
 
 impl Context {
     pub async fn start_echo(&mut self, msg: SendMsg, instance_id: usize) {
-        log::info!(
-            "ECHO: Starting echo for instance id: {}, myid: {}, msg: {:?}",
-            instance_id,
-            self.myid,
-            msg.clone(),
-        );
+        // log::info!(
+        //     "ECHO: Starting echo for instance id: {}, myid: {}, msg: {:?}",
+        //     instance_id,
+        //     self.myid,
+        //     msg.clone(),
+        // );
         // let rbc_context = self.rbc_context.entry(instance_id).or_default();
         // let status = &rbc_context.status;
         // assert!(
@@ -45,11 +45,11 @@ impl Context {
             let output = |s: Share| {
                 pi[s.number] = s.clone(); // deep copy
             };
-            log::info!(
-                "d_hashes before encoding: {:?}, instance_id: {}",
-                d_hashes,
-                instance_id
-            );
+            // log::info!(
+            //     "d_hashes before encoding: {:?}, instance_id: {}",
+            //     d_hashes,
+            //     instance_id
+            // );
             assert!(d_hashes.len() > 0, "Message content is empty");
             // let encoded: Vec<u8> = d_hashes.iter().flatten().copied().collect();
             let serialized_hashes = bincode::serialize(&d_hashes).unwrap();
