@@ -323,6 +323,8 @@ impl Context {
                 } else {
                     log::warn!(" M failed verification against D′, discarding");
                     // empty Vec<u8>
+                    // TEMPORARY ASSERT
+                    assert!(instance_id/10000 < self.num_faults);
                     rbc_context.status = Status::TERMINATED;
                     let empty_output: Vec<u8> = vec![];
                     self.terminate(empty_output).await; // bottom
