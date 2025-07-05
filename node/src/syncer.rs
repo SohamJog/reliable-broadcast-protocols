@@ -205,9 +205,9 @@ impl Syncer {
                 _ = interval.tick() => {
                     if self.ready_for_broadcast{
                         // Initiate new broadcast
-                        // if self.rbc_id >= self.broadcast_msgs.len(){
-                        //     continue;
-                        // }
+                        if self.rbc_id >= self.broadcast_msgs.len(){
+                            continue;
+                        }
                         self.ready_for_broadcast = false;
 
                         self.rbc_id += 1;
@@ -231,10 +231,10 @@ impl Syncer {
                         // }).await;
                         for replica in 0..self.num_nodes {
                             // COMMENT/ UNCOMMENT THIS TO DEBUG
-                            if replica != self.num_nodes - 1 || self.rbc_id != 1 {
-                                // Skip the client node
-                                continue;
-                            }
+                            // if replica != self.num_nodes - 1 || self.rbc_id != 1 {
+                            //     // Skip the client node
+                            //     continue;
+                            // }
 
                             let msg_id = replica*10000+self.rbc_id;
                             let sync_rbc_msg = RBCSyncMsg{
