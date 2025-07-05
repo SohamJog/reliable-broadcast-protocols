@@ -69,8 +69,6 @@ impl Context {
 
             //if (not yet sent ⟨𝑖𝑑, READY, 𝑐⟩ and received 𝑡 + 1 ⟨READY⟩ messages with the same 𝑐) then
 
-            // print all 3 conditions: ready senders, echo senders, and pi_i_map and instance id all in one line
-
             if !rbc_context.sent_ready {
                 // log::info!("Not sent ready yet, instance_id: {}", instance_id);
                 let threshold = self.num_faults + 1;

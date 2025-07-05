@@ -111,7 +111,10 @@ impl Context {
 
             return;
         }
-
-        self.start_echo(msg, instance_id).await;
+        // let &mut status = &rbc_context.status;
+        if (rbc_context.status == Status::INIT) {
+            rbc_context.status = Status::ECHO;
+            self.start_echo(msg, instance_id).await;
+        }
     }
 }
