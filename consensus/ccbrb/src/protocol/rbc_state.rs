@@ -29,8 +29,8 @@ pub struct RBCState {
     pub fragments_hashes: HashMap<(u64, Hash), Vec<Share>>,
 
     pub e: usize,
-    pub sent_ready: bool,
-    pub sent_echo: HashSet<(u64, Hash, Vec<u8>)>, // optional
+    pub sent_ready: bool,       // needed to avoid sending the second READY multiple times
+    pub sent_echo: HashSet<(u64, Hash, Vec<u8>)>, // no need because we're using STATUS
 }
 
 impl RBCState {

@@ -11,12 +11,12 @@ impl Context {
     pub async fn start_echo(&mut self, msg: SendMsg, instance_id: usize) {
         let d_hashes = msg.d_hashes.clone(); // D = [H(d1), ..., H(dn)]
         let c = do_hash(&bincode::serialize(&d_hashes).unwrap()); // c = H(D)
-        // log::info!(
-        //     "Starting ECHO for instance_id {} with c: {:?}, d_hashes: {:?}",
-        //     instance_id,
-        //     c,
-        //     d_hashes
-        // );
+                                                                  // log::info!(
+                                                                  //     "Starting ECHO for instance_id {} with c: {:?}, d_hashes: {:?}",
+                                                                  //     instance_id,
+                                                                  //     c,
+                                                                  //     d_hashes
+                                                                  // );
 
         let f = match FEC::new(self.num_faults, self.num_nodes) {
             Ok(f) => f,
@@ -122,6 +122,7 @@ impl Context {
         // Check if 2t + 1 ECHOs for same (c, πᵢ)
         if senders.len() >= 2 * self.num_faults + 1 && rbc_context.status == Status::ECHO {
             rbc_context.status = Status::READY;
+            rbc_context.sent_ready = true;
             self.start_ready(echo_msg.c, echo_msg.pi_i.clone(), instance_id)
                 .await;
         }
