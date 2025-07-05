@@ -14,11 +14,11 @@ impl Context {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         let status = &rbc_context.status;
         // input msg for instance_id:
-        log::info!(
-            "INIT: Input message for instance_id {}: {:?}",
-            instance_id,
-            input_msg
-        );
+        // log::info!(
+        //     "INIT: Input message for instance_id {}: {:?}",
+        //     instance_id,
+        //     input_msg
+        // );
         assert!(
             *status == Status::WAITING,
             "INIT: Status is not WAITING for instance id: {:?}",

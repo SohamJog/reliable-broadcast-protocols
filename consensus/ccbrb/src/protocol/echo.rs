@@ -56,7 +56,13 @@ impl Context {
 
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         rbc_context.fragment = msg.d_j.clone();
-        rbc_context.status = Status::ECHO;
+
+        assert!(
+            rbc_context.status == Status::ECHO,
+            "ECHO: Status is not ECHO for instance id: {:?}",
+            instance_id
+        );
+        // rbc_context.status = Status::ECHO;
 
         if (!self.crash) {
             for replica in 0..self.num_nodes {
