@@ -42,6 +42,11 @@ impl Context {
     }
 
     pub async fn handle_ready(&mut self, msg: ReadyMsg, instance_id: usize) {
+        // log::info!(
+        //     "Handling ready message: {:?} for instance_id: {}",
+        //     msg,
+        //     instance_id
+        // );
         let mut cancel_handlers = vec![];
 
         {
@@ -53,11 +58,25 @@ impl Context {
             let pi_i = msg.pi_i.clone();
 
             let pi_i_serialized = bincode::serialize(&pi_i).unwrap();
+            // log::info!(
+            //     "Ready message received for instance_id: {}, c: {:?}, pi_i: {:?}, origin: {}",
+            //     instance_id,
+            //     msg.c,
+            //     pi_i,
+            //     msg.origin
+            // );
             // Track senders per (c, πᵢ)
             let pi_i_map = rbc_context.ready_senders.entry(msg.c).or_default();
             let senders = pi_i_map.entry(pi_i_serialized.clone()).or_default();
 
             if !senders.insert(msg.origin) {
+                // log::debug!(
+                //     "Duplicate READY message received for instance_id: {}, c: {:?}, pi_i: {:?}, origin: {}",
+                //     instance_id,
+                //     msg.c,
+                //     pi_i,
+                //     msg.origin
+                // );
                 return; // duplicate
             }
 
@@ -67,6 +86,7 @@ impl Context {
                 .or_default();
             hashes_entry.push(pi_i.clone());
 
+            log::debug!("About to process ready");
             //if (not yet sent ⟨𝑖𝑑, READY, 𝑐⟩ and received 𝑡 + 1 ⟨READY⟩ messages with the same 𝑐) then
 
             if !rbc_context.sent_ready {
@@ -313,7 +333,10 @@ impl Context {
                 let all_match = recomputed_hashes == d_prime_hashes;
 
                 if all_match {
-                    log::info!(" M is verified and consistent, delivering...");
+                    log::info!(
+                        " M is verified and consistent, delivering... for instance_id: {}",
+                        instance_id
+                    );
                     rbc_context.status = Status::TERMINATED;
                     let output_message = recomputed_shards.concat();
                     self.terminate(output_message).await;
@@ -322,12 +345,19 @@ impl Context {
                     log::warn!(" M failed verification against D′, discarding");
                     // empty Vec<u8>
                     // TEMPORARY ASSERT
-                    assert!(instance_id/10000 < self.num_faults);
+                    assert!(instance_id / 10000 < self.num_faults);
                     rbc_context.status = Status::TERMINATED;
                     let empty_output: Vec<u8> = vec![];
                     self.terminate(empty_output).await; // bottom
                     return;
                 }
+            } else {
+                //log warn H(d prime ) != c
+                log::warn!(
+                    "H(D′) does not match c for instance_id: {}, c: {:?}",
+                    instance_id,
+                    msg.c
+                );
             }
         }
     }

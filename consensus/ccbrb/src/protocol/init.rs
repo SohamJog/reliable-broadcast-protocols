@@ -67,6 +67,7 @@ impl Context {
                 // If we're Byzantine, corrupt the share
                 Share {
                     number: replica,
+                    // data: shards[replica].clone(),
                     data: vec![0; shards[replica].len()],
                 }
             } else {

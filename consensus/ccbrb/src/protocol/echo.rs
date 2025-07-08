@@ -1,4 +1,5 @@
 use crate::msg::{EchoMsg, SendMsg};
+use crate::protocol::echo;
 use crate::Status;
 use crate::{Context, ProtMsg};
 use bincode;
@@ -51,8 +52,19 @@ impl Context {
             }
             //f.encode(&msg_content, output)?;
         }
+        if self.byz {
+            // if byzantine, set all shares to empty, but make sure to keep the size consistent, so fill with 0
+            for i in 0..self.num_nodes {
+                // set p[i].data to 0, but keep the size of data consistent
+                pi[i].data = vec![0; pi[i].data.len()];
+            }
+        }
 
-        // log::info!("Encoded shares for instance_id {}: {:?}", instance_id, pi);
+        // log::info!(
+        //     "Echo: Encoded shares for instance_id {}: {:?}",
+        //     instance_id,
+        //     pi
+        // );
 
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         rbc_context.fragment = msg.d_j.clone();
@@ -67,10 +79,11 @@ impl Context {
         if (!self.crash) {
             for replica in 0..self.num_nodes {
                 let share = if self.byz && replica != self.myid {
-                    Share {
-                        number: replica,
-                        data: vec![],
-                    }
+                    msg.d_j.clone()
+                    // Share {
+                    //     number: replica,
+                    //     data: vec![],
+                    // }
                 } else {
                     msg.d_j.clone()
                 };
@@ -123,8 +136,18 @@ impl Context {
         if senders.len() >= 2 * self.num_faults + 1 && rbc_context.status == Status::ECHO {
             rbc_context.status = Status::READY;
             rbc_context.sent_ready = true;
-            self.start_ready(echo_msg.c, echo_msg.pi_i.clone(), instance_id)
-                .await;
+            //send pi i if byzantine, otherwise clear the data of pi_i
+            let share = {
+                if !self.byz {
+                    echo_msg.pi_i.clone()
+                } else {
+                    Share {
+                        number: echo_msg.pi_i.number,
+                        data: echo_msg.pi_i.data.iter().map(|_| 0).collect(),
+                    }
+                }
+            };
+            self.start_ready(echo_msg.c, share, instance_id).await;
         }
     }
 }
