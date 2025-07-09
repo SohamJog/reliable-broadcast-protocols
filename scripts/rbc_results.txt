@@ -166,7 +166,7 @@ Message Size (bytes) | Avg Time (ms) | Count
 65536                 5343.061       3
 131072                5777.715       3
 
-ccbrb 16 no faults
+ccrbc 16 no faults
 Message Size (bytes) | Avg Time (ms) | Count
 ----------------------------------------------
 1024                  297.651        3
@@ -175,16 +175,16 @@ Message Size (bytes) | Avg Time (ms) | Count
 65536                 768.927        3
 131072                858.980        3
 
-ccbrb 16 byz
+ccrbc 16 byz
 Message Size (bytes) | Avg Time (ms) | Count
 ----------------------------------------------
-1024                  326.889        3
-4096                  428.814        3
-16384                 544.379        3
-65536                 675.757        3
-131072                742.919        3
+1024                  487.913        3
+4096                  606.279        3
+16384                 755.949        3
+65536                 899.764        3
+131072                1007.795       3
 
-ccbrb 16 crash
+ccrbc 16 crash
 Message Size (bytes) | Avg Time (ms) | Count
 ----------------------------------------------
 1024                  420.362        3
@@ -193,7 +193,7 @@ Message Size (bytes) | Avg Time (ms) | Count
 65536                 719.108        3
 131072                839.902        3
 
-ccbrb 40 no faults
+ccrbc 40 no faults
 Message Size (bytes) | Avg Time (ms) | Count
 ----------------------------------------------
 1024                  355.529        3
@@ -202,16 +202,16 @@ Message Size (bytes) | Avg Time (ms) | Count
 65536                 2682.374       3
 131072                3212.623       3
 
-ccbrb 40 byz
+ccrbc 40 byz
 Message Size (bytes) | Avg Time (ms) | Count
 ----------------------------------------------
-1024                  379.585        3
-4096                  721.422        3
-16384                 1263.862       3
-65536                 1902.851       3
-131072                2448.102       3
+1024                  1337.103       3
+4096                  1770.732       3
+16384                 2444.288       3
+65536                 3213.120       3
+131072                3794.410       3
 
-ccbrb 40 crash
+ccrbc 40 crash
 Message Size (bytes) | Avg Time (ms) | Count
 ----------------------------------------------
 1024                  473.957        3

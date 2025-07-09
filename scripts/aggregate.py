@@ -3,24 +3,24 @@ from collections import defaultdict
 
 # Paste the copied column below (preserve spacing!)
 raw_data = """
-256 bytes: 790.52 ms
-1024 bytes: 468.928 ms
-4096 bytes: 715.727 ms
-16384 bytes: 1771.148 ms
-65536 bytes: 2724.849 ms
-131072 bytes: 3091.129 ms
-256 bytes: 794.324 ms
-1024 bytes: 476.036 ms
-4096 bytes: 719.597 ms
-16384 bytes: 1884.464 ms
-65536 bytes: 3061.592 ms
-131072 bytes: 3513.936 ms
-256 bytes: 796.113 ms
-1024 bytes: 476.907 ms
-4096 bytes: 788.172 ms
-16384 bytes: 1766.387 ms
-65536 bytes: 3000.713 ms
-131072 bytes: 3473.532 ms
+256 bytes: 872.426 ms
+1024 bytes: 494.619 ms
+4096 bytes: 629.802 ms
+16384 bytes: 777.556 ms
+65536 bytes: 937.131 ms
+131072 bytes: 1086.176 ms
+256 bytes: 853.017 ms
+1024 bytes: 470.83 ms
+4096 bytes: 585.215 ms
+16384 bytes: 710.225 ms
+65536 bytes: 799.955 ms
+131072 bytes: 865.34 ms
+256 bytes: 871.738 ms
+1024 bytes: 498.29 ms
+4096 bytes: 603.819 ms
+16384 bytes: 780.067 ms
+65536 bytes: 962.205 ms
+131072 bytes: 1071.868 ms
 """
 
 size_to_times = defaultdict(list)

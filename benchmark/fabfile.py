@@ -21,8 +21,8 @@ DEFAULT_BENCH_PARAMS = {
     'runs': 2,
     'protocol': 'ccbrb',
     'bfile': 'longer_test_msgs.txt',
-    'byzantine': False,
-    'crash': True,
+    'byzantine': True,
+    'crash': False,
 }
 
 DEFAULT_NODE_PARAMS = {
