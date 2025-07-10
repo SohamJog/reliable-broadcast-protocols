@@ -102,7 +102,7 @@ impl Context {
             //<Ready, f(your own fragment), h> to everyone
             if let Some(hash) = mode_content {
                 rbc_context.status = Status::READY;
-
+                rbc_context.sent_ready = true;
                 self.start_ready(hash, instance_id).await;
             }
             // let rbc_context = self.rbc_context.entry(instance_id).or_default();
@@ -129,6 +129,7 @@ impl Context {
                 //<Ready, f(your own fragment), h> to everyone
                 if let Some(hash) = mode_content {
                     rbc_context.status = Status::READY;
+                    rbc_context.sent_ready = true;
                     self.start_ready(hash, instance_id).await;
                 }
             }

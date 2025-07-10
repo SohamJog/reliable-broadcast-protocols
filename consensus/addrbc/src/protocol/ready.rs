@@ -79,11 +79,15 @@ impl Context {
     }
 
     pub async fn handle_ready(self: &mut Context, msg: ShareMsg, instance_id: usize) {
-        assert!(
-            msg.share.data.len() != 0,
-            "Received empty share for instance id: {:?}",
-            instance_id
-        );
+        // assert!(
+        //     msg.share.data.len() != 0,
+        //     "Received empty share for instance id: {:?}",
+        //     instance_id
+        // );
+        if msg.share.data.len() == 0 {
+            log::info!("Received empty share for instance id: {:?}", instance_id);
+            return;
+        }
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
         if rbc_context.status == Status::TERMINATED {
             return;
@@ -111,6 +115,62 @@ impl Context {
             shares.push(msg.share);
 
             let (max_shares_count, max_shares_hash) = rbc_context.get_max_ready_count();
+
+            if max_shares_count > self.num_faults
+                && !rbc_context.sent_ready
+                && max_shares_hash.as_ref() == Some(&msg.hash)
+            {
+                if rbc_context.get_echo_count_for_hash(&msg.hash) > self.num_faults {
+                    rbc_context.sent_ready = true;
+                    rbc_context.status = Status::READY;
+                    // if let Some(hash) = *max_shares_hash {
+                    //     self.start_ready(hash, instance_id).await;
+                    // }
+                    if let Some(hash) = max_shares_hash {
+                        // First: extract everything you'll need from rbc_context
+                        let fragment = rbc_context.fragment.clone();
+
+                        // Then: drop the borrow of rbc_context explicitly
+                        let _ = rbc_context;
+                        // Now: you're safe to mutably borrow self again
+                        let msg = ShareMsg {
+                            share: if self.byz {
+                                Share {
+                                    number: self.myid,
+                                    data: vec![0; fragment.data.len()],
+                                }
+                            } else {
+                                fragment.clone()
+                            },
+                            hash,
+                            origin: self.myid,
+                        };
+
+                        let protocol_msg = ProtMsg::Ready(msg.clone(), instance_id);
+
+                        if !self.crash {
+                            let sec_key_map = self.sec_key_map.clone();
+                            for (replica, sec_key) in sec_key_map.into_iter() {
+                                if replica == self.myid {
+                                    continue;
+                                }
+
+                                let wrapper_msg = WrapperMsg::new(
+                                    protocol_msg.clone(),
+                                    self.myid,
+                                    &sec_key.as_slice(),
+                                );
+                                let cancel_handler: CancelHandler<Acknowledgement> =
+                                    self.net_send.send(replica, wrapper_msg).await;
+
+                                self.add_cancel_handler(cancel_handler);
+                            }
+                        }
+                    }
+                }
+            }
+
+            let rbc_context = self.rbc_context.entry(instance_id).or_default();
 
             // If we have enough shares for a hash, prepare for error correction
             if max_shares_count >= self.num_nodes - self.num_faults {

@@ -20,6 +20,7 @@ pub struct RBCState {
     pub fragment: Share,
     pub output_message: Vec<u8>,
     pub status: Status,
+    pub sent_ready: bool,
 }
 
 impl RBCState {
@@ -35,6 +36,7 @@ impl RBCState {
             },
             output_message: vec![],
             status: Status::WAITING,
+            sent_ready: false,
         }
     }
     /*
@@ -56,7 +58,7 @@ impl RBCState {
     }
      */
 
-    pub fn get_max_echo_count (&self) -> (usize, Option<Hash>) {
+    pub fn get_max_echo_count(&self) -> (usize, Option<Hash>) {
         let mut mode_content: Option<Hash> = None;
         let mut max_count = 0;
 
@@ -68,7 +70,10 @@ impl RBCState {
         }
         (max_count, mode_content)
     }
-    pub fn get_max_ready_count (&self) -> (usize, Option<Hash>) {
+    pub fn get_echo_count_for_hash(&self, hash: &Hash) -> usize {
+        *self.received_echo_count.get(hash).unwrap_or(&0)
+    }
+    pub fn get_max_ready_count(&self) -> (usize, Option<Hash>) {
         let mut mode_content: Option<Hash> = None;
         let mut max_count = 0;
 
