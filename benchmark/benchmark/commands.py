@@ -37,7 +37,7 @@ class CommandMaker:
         assert isinstance(byzantine, bool)
         assert isinstance(crash, bool)
         assert isinstance(debug, bool)
-        return (f'./node --config {key} --ip ip_file '
+        return (f'ulimit -n 8500; ./node --config {key} --ip ip_file '
                 f'--protocol {protocol} --input xx --syncer syncer --bfile {bfile} --byzantine {str(byzantine).lower()} --crash {str(crash).lower()}')
  
     
@@ -45,7 +45,7 @@ class CommandMaker:
     def run_syncer(key, bfile, byzantine, debug=False):
         assert isinstance(key, str)
         assert isinstance(debug, bool)
-        return (f'./node --config {key} --ip ip_file '
+        return (f'ulimit -n 8500; ./node --config {key} --ip ip_file '
             f'--protocol sync --input xx --syncer syncer --bfile {bfile} --byzantine {str(byzantine).lower()}')
 
 

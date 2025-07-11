@@ -8,7 +8,7 @@
     "client_run_port": 6500,
     "repo": {
         "name": "add-rbc",
-        "url": "https://github.com/SohamJog/add-rbc",
+        "url": "https://github.com/SohamJog/reliable-broadcast-protocols",
         "branch": "main"
     },
     "instances": {
