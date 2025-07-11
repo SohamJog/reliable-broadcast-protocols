@@ -85,7 +85,7 @@ class LocalBench:
             #committee = LocalCommittee(names, self.BASE_PORT)
             #ip_file.print("ip_file")
 
-            # Generate the configuration files for add-rbc
+            # Generate the configuration files for reliable-broadcast-protocols
             cmd = CommandMaker.generate_config_files(self.BASE_PORT,self.cl_bport,9500,nodes)
             self._background_run(cmd,"err.log")
 

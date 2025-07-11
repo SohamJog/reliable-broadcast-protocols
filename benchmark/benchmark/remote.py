@@ -470,7 +470,7 @@ class Bench:
         c = Connection(host, user='ec2-user', connect_kwargs=self.connect)
 
         Print.info(f'Running latency script on: {host}')
-        result = c.run(f'./add-rbc/benchmark/latencies.sh {max(bench_parameters.nodes)}', hide=True)
+        result = c.run(f'./reliable-broadcast-protocols/benchmark/latencies.sh {max(bench_parameters.nodes)}', hide=True)
         output = result.stdout
 
         # Parse latency output
