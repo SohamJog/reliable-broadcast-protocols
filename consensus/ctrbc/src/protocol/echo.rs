@@ -98,6 +98,12 @@ impl Context {
         }
         // Go for optimistic termination if all n shares have appeared
         else if size == self.num_nodes {
+            // log::info!(
+            //     "Echo senders: {:?} for RBC instance id {}, size: {}",
+            //     echo_senders,
+            //     instance_id,
+            //     size
+            // );
             log::info!(
                 "Received n ECHO messages for RBC instance id {}, terminating",
                 instance_id

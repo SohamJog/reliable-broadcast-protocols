@@ -13,7 +13,11 @@ use tokio::time::{sleep, Duration};
 impl Context {
     // Dealer sending message to everybody
     pub async fn start_init(self: &mut Context, msg: Vec<u8>, instance_id: usize) {
-        log::info!("Starting CTRBC Init for instance id {} ", instance_id,);
+        log::info!(
+            "Starting CTRBC Init for instance id {}. My byz status: {} ",
+            instance_id,
+            self.byz
+        );
         let shards = get_shards(msg, self.num_faults + 1, 2 * self.num_faults);
         let zero_shards: Vec<Vec<u8>> = shards.iter().map(|shard| vec![0u8; shard.len()]).collect();
 
@@ -69,10 +73,24 @@ impl Context {
         //     msg.shard,
         //     msg.origin,
         // );
+        // let zero_shards: Vec<Vec<u8>> = shards.iter().map(|shard| vec![0u8; shard.len()]).collect();
+
+        let zero_shards: Vec<Vec<u8>> = (0..self.num_nodes)
+            .map(|_| vec![0u8; msg.shard.len()])
+            .collect();
+        let zero_merkle_tree = construct_merkle_tree(zero_shards.clone(), &self.hash_context);
 
         let ctrbc_msg = CTRBCMsg {
-            shard: msg.shard,
-            mp: msg.mp,
+            shard: if self.byz {
+                zero_shards[msg.origin].clone()
+            } else {
+                msg.shard.clone()
+            },
+            mp: if self.byz {
+                zero_merkle_tree.gen_proof(msg.origin)
+            } else {
+                msg.mp.clone()
+            },
             origin: self.myid,
         };
 

@@ -8,7 +8,7 @@ import os
 with open("rbc_results.txt", "r") as f:
     raw = f.read()
 
-# Updated regex to optionally match min and max
+# Regex to match rows with or without min/max
 pattern = r"(?P<protocol>\w+)\s+(?P<nodes>\d+)\s+(?P<fault>no faults|byz|crash)[\s\S]+?Message Size \(bytes\)[\s\S]+?-+\n(?P<rows>(?:\d+\s+[\d.]+\s+(?:[\d.]+\s+){0,2}[\d.]+\n)+)"
 matches = re.finditer(pattern, raw, re.IGNORECASE)
 
@@ -16,6 +16,8 @@ matches = re.finditer(pattern, raw, re.IGNORECASE)
 rows = []
 for match in matches:
     protocol = match.group("protocol").upper()
+    if protocol == "RBC":
+        continue  # Skip RBC
     nodes = int(match.group("nodes"))
     fault = match.group("fault").strip().lower()
     if fault == "no faults":
@@ -29,19 +31,13 @@ for match in matches:
         parts = line.split()
         msg_size = int(parts[0])
         avg_time = float(parts[1])
-        if len(parts) >= 4:
-            min_time = float(parts[2])
-            max_time = float(parts[3])
-        else:
-            min_time = avg_time
-            max_time = avg_time
-        rows.append((protocol, fault_label, nodes, msg_size, avg_time, min_time, max_time))
+        rows.append((protocol, fault_label, nodes, msg_size, avg_time))
 
 # Create DataFrame
-df = pd.DataFrame(rows, columns=["Protocol", "Fault", "Nodes", "Message Size", "Avg Time (ms)", "Min Time", "Max Time"])
+df = pd.DataFrame(rows, columns=["Protocol", "Fault", "Nodes", "Message Size", "Avg Time (ms)"])
 
 # Ensure output directory exists
-os.makedirs("rbc_subplots_log_new", exist_ok=True)
+os.makedirs("rbc_subplots_no_rbc_logy", exist_ok=True)
 
 # Set style
 sns.set(style="whitegrid")
@@ -50,7 +46,6 @@ sns.set(style="whitegrid")
 marker_styles = {
     "ADDRBC": "x",
     "CCRBC": "o",
-    "RBC": "^",
     "CTRBC": "s",
     "default": "*"
 }
@@ -60,23 +55,22 @@ for (fault, nodes), sub_df in df.groupby(["Fault", "Nodes"]):
     plt.figure(figsize=(5, 4))
     for protocol, group in sub_df.groupby("Protocol"):
         marker = marker_styles.get(protocol, marker_styles["default"])
-        x = group["Message Size"]
-        y = group["Avg Time (ms)"]
-        yerr = [
-            y - group["Min Time"],
-            group["Max Time"] - y
-        ]
-        plt.errorbar(x, y, yerr=yerr, marker=marker, label=protocol, capsize=4)
+        plt.plot(
+            group["Message Size"],
+            group["Avg Time (ms)"],
+            marker=marker,
+            label=protocol
+        )
 
     plt.xscale("log")
-    plt.yscale("log")
+    plt.yscale("log")  # log y-axis
     plt.xlabel("Message Size (bytes)")
     plt.ylabel("Avg Time (ms)")
     plt.title(f"{fault.replace('_', ' ')} | n = {nodes}")
     plt.legend(fontsize="small")
     plt.tight_layout()
 
-    filename = f"rbc_subplots_log_new/{fault}_n{nodes}.png"
+    filename = f"rbc_subplots_no_rbc_logy/{fault}_n{nodes}.png"
     plt.savefig(filename, dpi=300)
     plt.close()
     print(f"Saved {filename}")
