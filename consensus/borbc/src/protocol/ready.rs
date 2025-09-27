@@ -12,9 +12,7 @@ impl Context {
 
         if rbc_context.terminated {
             return;
-            // RBC Context already terminated, skip processing this message
         }
-        // check if verifies
         if !msg.verify_mr_proof(&self.hash_context) {
             log::error!(
                 "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
@@ -38,10 +36,7 @@ impl Context {
         if size == self.num_faults + 1 {
             // Sent ECHOs and getting a ready message for the same ECHO
             if rbc_context.echo_root.is_some() && rbc_context.echo_root.clone().unwrap() == root {
-                // No need to interpolate the Merkle tree again.
-                // If the echo_root variable is set, then we already sent ready for this message.
-                // Nothing else to do here. Quit the execution.
-
+              
                 return;
             }
 
@@ -106,7 +101,6 @@ impl Context {
         } else if size == 2 * self.num_faults + 1 && !rbc_context.terminated {
     rbc_context.ready_quorum_reached = true;
 
-    // If we already have enough ECHOs (ceil((n-f+1)/2)), decode & terminate now.
     let latch_echo_thresh = (self.num_nodes - self.num_faults + 1 + 1) / 2;
     if let Some(root) = rbc_context.echo_root.clone() {
         if let Some(echo_senders) = rbc_context.echos.get(&root) {
@@ -133,13 +127,11 @@ impl Context {
                     rbc_context.fragment = Some((my_share.clone(), merkle_tree.gen_proof(self.myid)));
                     rbc_context.message = Some(message);
                     rbc_context.terminated = true;
-
-                    // optional re-broadcast Ready (idempotent)
+                    let term_msg = rbc_context.message.clone().unwrap();
                     if !self.crash {
                         let out = CTRBCMsg { shard: my_share, mp: merkle_tree.gen_proof(self.myid), origin: self.myid };
                         self.broadcast(ProtMsg::Ready(out, instance_id)).await;
                     }
-                    let term_msg = rbc_context.message.clone().unwrap();
                     self.terminate(term_msg).await;
                 }
             }
