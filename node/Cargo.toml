@@ -13,6 +13,7 @@ addrbc = {package = "addrbc",path="../consensus/addrbc"}
 ccbrb = {package = "ccbrb", path="../consensus/ccbrb"}
 ctrbc = {package = "ctrbc",path="../consensus/ctrbc"}
 avid = {package= "avid", path="../consensus/avid"}
+borbc = {package = "borbc", path="../consensus/borbc"}
 consensus = { package = "consensus", path="../consensus"}
 util = { package = "util", path="../util"}
 anyhow = "1"
