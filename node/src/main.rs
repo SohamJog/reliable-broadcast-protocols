@@ -110,6 +110,15 @@ async fn main() -> Result<()> {
             )
             .unwrap();
         }
+        "borbc" => {
+            exit_tx = borbc::Context::spawn(
+                config,
+                input_value.as_bytes().to_vec(),
+                node_normal,
+                node_crash,
+            )
+            .unwrap();
+        }
         "avid" => {
             exit_tx = avid::Context::spawn(
                 config,
