@@ -168,7 +168,7 @@ def kill(ctx):
 def logs(ctx):
     ''' Download and print logs '''
     try:
-        print(Bench(ctx).pull_logs(
+        print(Bench(ctx).pull_logs_old(
             DEFAULT_BENCH_PARAMS, DEFAULT_NODE_PARAMS,
         ))
     except ParseError as e:

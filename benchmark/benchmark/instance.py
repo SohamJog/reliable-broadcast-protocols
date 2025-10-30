@@ -106,28 +106,28 @@ class InstanceManager:
             ]
         )
 
-    # def _get_ami(self, client):
-    #     # The AMI changes with regions.
-    #     response = client.describe_images(
-    #         Filters=[{
-    #             'Name': 'description',
-    #             'Values': ['Canonical, Ubuntu, 20.04 LTS, amd64 focal image build on 2023-03-28']
-    #         }]
-    #     )
-    #     return response['Images'][0]['ImageId']
     def _get_ami(self, client):
-        region = client.meta.region_name
-        ami_map = {
-            'us-east-1': 'ami-097947612b141c026',
-            'us-east-2': 'ami-0133f9d4af72da4d0',
-            'us-west-1': 'ami-08be293cd057c7a9d',
-            'us-west-2': 'ami-08a0cbdcdcbc08448',
-            'ca-central-1': 'ami-0e769f5a7e05b434d',
-            'eu-west-1': 'ami-0615f8fb30852b961',
-            'ap-southeast-1': 'ami-05c261f9eb9de6a80',
-            'ap-northeast-1': 'ami-07bff4033fbfe2317',
-        }
-        return ami_map[region]
+        # The AMI changes with regions.
+        response = client.describe_images(
+            Filters=[{
+                'Name': 'description',
+                'Values': ['Canonical, Ubuntu, 24.04, amd64 noble image']
+            }]
+        )
+        return response['Images'][0]['ImageId']
+    # def _get_ami(self, client):
+    #     region = client.meta.region_name
+    #     ami_map = {
+    #         'us-east-1': 'ami-097947612b141c026',
+    #         'us-east-2': 'ami-0133f9d4af72da4d0',
+    #         'us-west-1': 'ami-08be293cd057c7a9d',
+    #         'us-west-2': 'ami-08a0cbdcdcbc08448',
+    #         'ca-central-1': 'ami-0e769f5a7e05b434d',
+    #         'eu-west-1': 'ami-0615f8fb30852b961',
+    #         'ap-southeast-1': 'ami-05c261f9eb9de6a80',
+    #         'ap-northeast-1': 'ami-07bff4033fbfe2317',
+    #     }
+    #     return ami_map[region]
 
 
     def create_instances(self, instances):
@@ -259,7 +259,7 @@ class InstanceManager:
             text += f'\n Region: {region.upper()}\n'
             for i, ip in enumerate(ips):
                 new_line = '\n' if (i+1) % 6 == 0 else ''
-                text += f'{new_line} {i}\tssh -i {key} ec2-user@{ip}\n'
+                text += f'{new_line} {i}\tssh -i {key} ubuntu@{ip}\n'
         print(
             '\n'
             '----------------------------------------------------------------\n'
