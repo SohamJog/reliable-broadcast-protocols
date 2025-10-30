@@ -4,12 +4,10 @@ use reed_solomon_rs::fec::fec::*;
 
 use crate::{Context, ProtMsg, ShareMsg};
 
-use crate::RBCState;
 use types::WrapperMsg;
 
 use crate::Status;
 use network::{plaintcp::CancelHandler, Acknowledgement};
-use tokio::time::{sleep, Duration};
 
 impl Context {
     pub async fn echo_self(&mut self, hash: Hash, share: Share, instance_id: usize) {
@@ -23,7 +21,7 @@ impl Context {
     pub async fn start_echo(self: &mut Context, msg_content: Vec<u8>, instance_id: usize) {
         let hash = do_hash(&msg_content);
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        let status = &rbc_context.status;
+        let _status = &rbc_context.status;
         // if *status != Status::INIT || *status != Status::WAITING {
         //     return;
         // }

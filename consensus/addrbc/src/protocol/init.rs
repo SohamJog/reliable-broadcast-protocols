@@ -1,6 +1,5 @@
 use crate::{Context, Msg, ProtMsg};
 
-use super::rbc_state;
 use crate::Status;
 
 impl Context {

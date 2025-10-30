@@ -22,7 +22,7 @@ pub struct SyncMsg{
 #[derive(Debug,Serialize,Deserialize,Clone)]
 pub struct RBCSyncMsg{
     pub id: usize,
-    pub msg: String,
+    pub msg: Vec<u8>,
 }
 
 impl WireReady for SyncMsg{

@@ -3,9 +3,9 @@ use crate::{
     Context, Status,
 };
 use bincode;
-use consensus::{get_shards, reconstruct_data};
+use consensus::{reconstruct_data};
 use crypto::hash::{do_hash, Hash};
-use network::{plaintcp::CancelHandler, Acknowledgement};
+
 use reed_solomon_rs::fec::fec::{Share, FEC};
 use std::collections::HashSet;
 use types::Replica;
@@ -99,7 +99,7 @@ impl Context {
 
                 if all_ready_senders.len() >= threshold {
                     if let Some(echo_map) = rbc_context.echo_senders.get(&msg.c) {
-                        for (pi_i_bytes, echo_senders) in echo_map {
+                        for (pi_i_bytes, _echo_senders) in echo_map {
                             if let Some(echo_senders) = echo_map.get(pi_i_bytes) {
                                 if echo_senders.len() >= threshold {
                                     rbc_context.sent_ready = true;
@@ -182,7 +182,7 @@ impl Context {
                 return;
             }
 
-            let mut f = FEC::new(self.num_faults, self.num_nodes).unwrap();
+            let f = FEC::new(self.num_faults, self.num_nodes).unwrap();
             // log::info!(
             //     "About to decode D′ for instance_id: {}, c: {:?}, hash_shares: {:?}",
             //     instance_id,

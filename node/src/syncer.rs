@@ -10,7 +10,7 @@ use network::{
     plaintcp::{CancelHandler, TcpReceiver, TcpReliableSender},
     Acknowledgement,
 };
-use std::fs::read_to_string;
+
 use tokio::{
     sync::{
         mpsc::{unbounded_channel, UnboundedReceiver},
@@ -30,9 +30,9 @@ pub struct Syncer {
     pub rbc_msgs: HashMap<usize, String>,
     pub rbc_start_times: HashMap<usize, u128>,
     pub rbc_complete_times: HashMap<usize, HashMap<Replica, u128>>,
-    pub rbc_comp_values: HashMap<usize, HashSet<String>>,
+    pub rbc_comp_values: HashMap<usize, HashSet<Vec<u8>>>,
 
-    pub broadcast_msgs: Vec<String>,
+    pub broadcast_msgs: Vec<u8>,
 
     pub sharing_complete_times: HashMap<Replica, u128>,
     pub recon_start_time: u128,
@@ -54,7 +54,7 @@ impl Syncer {
     pub fn spawn(
         net_map: FnvHashMap<Replica, String>,
         cli_addr: SocketAddr,
-        filename: String,
+        rbc_msg_size: u64,
     ) -> anyhow::Result<oneshot::Sender<()>> {
         let (exit_tx, exit_rx) = oneshot::channel();
         let (tx_net_to_server, rx_net_to_server) = unbounded_channel();
@@ -64,7 +64,13 @@ impl Syncer {
             std::net::SocketAddr::V4(new_sock_address),
             SyncHandler::new(tx_net_to_server),
         );
-        let broadcast_msgs = read_lines(&filename);
+        
+        let mut broadcast_msgs = Vec::new();
+        for _ in 0..rbc_msg_size{
+            broadcast_msgs.push(0 as u8);
+        }
+
+        log::info!("Requesting each party to broadcast messages of size {} bytes", rbc_msg_size);
         let mut server_addrs: FnvHashMap<Replica, SocketAddr> = FnvHashMap::default();
         for (replica, address) in net_map.iter() {
             let address: SocketAddr = address.parse().expect("Unable to parse address");
@@ -166,7 +172,7 @@ impl Syncer {
 
 
                             let value_set = self.rbc_comp_values.entry(rbc_msg.id).or_default();
-                            value_set.insert(rbc_msg.msg.to_string());
+                            value_set.insert(rbc_msg.msg);
                             if latency_map.len() == self.num_nodes{
 
                                 self.ready_for_broadcast = true;
@@ -205,7 +211,7 @@ impl Syncer {
                 _ = interval.tick() => {
                     if self.ready_for_broadcast{
                         // Initiate new broadcast
-                        if self.rbc_id >= self.broadcast_msgs.len(){
+                        if self.rbc_id >= 1{
                             continue;
                         }
                         self.ready_for_broadcast = false;
@@ -239,7 +245,7 @@ impl Syncer {
                             let msg_id = replica*10000+self.rbc_id;
                             let sync_rbc_msg = RBCSyncMsg{
                                 id: msg_id,
-                                msg: self.broadcast_msgs.get(&self.rbc_id-1).unwrap().to_string(),
+                                msg: self.broadcast_msgs.clone(),
                             };
                             let binaryfy_val = bincode::serialize(&sync_rbc_msg).expect("Failed to serialize client message");
                             let cancel_handler:CancelHandler<Acknowledgement> = self.net_send.send(replica, SyncMsg {
@@ -247,6 +253,7 @@ impl Syncer {
                                 state: SyncState::START,
                                 value:binaryfy_val
                             }).await;
+
                             self.add_cancel_handler(cancel_handler);
                             log::info!("Sent START message to node {}", replica);
                             let start_time = SystemTime::now()
@@ -256,17 +263,6 @@ impl Syncer {
 
                             self.rbc_start_times.insert(msg_id, start_time);
                         }
-                        // pub async fn broadcast(&mut self, sync_msg: SyncMsg) {
-                        //     for replica in 0..self.num_nodes {
-                        //         let cancel_handler: CancelHandler<Acknowledgement> =
-                        //             self.net_send.send(replica, sync_msg.clone()).await;
-                        //         self.add_cancel_handler(cancel_handler);
-                        //         log::info!("Sent {:?} message to node {}", sync_msg.state, replica);
-                        //     }
-                        // }
-
-
-
                     }
                 }
             }
@@ -276,14 +272,4 @@ impl Syncer {
     pub fn add_cancel_handler(&mut self, canc: CancelHandler<Acknowledgement>) {
         self.cancel_handlers.push(canc);
     }
-}
-
-fn read_lines(filename: &str) -> Vec<String> {
-    let mut result = Vec::new();
-
-    for line in read_to_string(filename).unwrap().lines() {
-        result.push(line.to_string())
-    }
-
-    result
 }

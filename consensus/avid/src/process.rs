@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::{ProtMsg};
 use crate::{context::Context, msg::AVIDMsg};
 use crypto::hash::verf_mac;
-use network::{plaintcp::CancelHandler, Acknowledgement};
+use network::{Acknowledgement, Message, plaintcp::CancelHandler};
 use types::{SyncMsg, SyncState, WrapperMsg, RBCSyncMsg};
 
 impl Context {
@@ -93,7 +93,7 @@ impl Context {
                     state: SyncState::COMPLETED,
                     value: bincode::serialize(&RBCSyncMsg{
                         id: instance_id,
-                        msg: "Completed AVID instance".to_string(),
+                        msg: "Completed AVID instance".to_string().to_bytes(),
                     }).unwrap(),
                 },
             )

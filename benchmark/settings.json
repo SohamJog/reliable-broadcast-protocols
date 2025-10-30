@@ -1,7 +1,7 @@
 {
     "key": {
-        "name": "add_rbc_benchmark",
-        "path": "/Users/sohamjog/Desktop/add_rbc_benchmark.pem"
+        "name": "aws",
+        "path": "/home/akhil/.ssh/aws"
     },
     "port": 5000,
     "client_base_port": 6000,
@@ -12,7 +12,7 @@
         "branch": "main"
     },
     "instances": {
-        "type": "t3a.medium",
+        "type": "c5.large",
         "regions": ["us-east-1","us-east-2","us-west-1","us-west-2","ca-central-1", "eu-west-1", "ap-southeast-1", "ap-northeast-1"]
     }
 }

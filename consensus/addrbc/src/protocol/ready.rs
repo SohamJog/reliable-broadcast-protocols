@@ -4,7 +4,7 @@ use crypto::hash::Hash;
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::FEC;
 use reed_solomon_rs::fec::fec::*;
-use tokio::time::{sleep, Duration};
+
 use types::WrapperMsg;
 
 impl Context {

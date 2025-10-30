@@ -10,10 +10,10 @@ mkdir -p testdata/hyb_${num_nodes}
   --NumNodes $num_nodes \
   --delay 10 \
   --blocksize 100 \
-  --client_base_port 7000 \
+  --client_base_port 19000 \
   --target testdata/hyb_${num_nodes}/ \
   --payload 100 \
   --out_type json \
-  --base_port 9000 \
-  --client_run_port 4000 \
+  --base_port 15000 \
+  --client_run_port 19500 \
   --local true

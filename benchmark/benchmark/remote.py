@@ -232,36 +232,23 @@ class Bench:
                 print('Node 0: writing syncer')
                 c.put(PathMaker.syncer(),'.')
             c.put(PathMaker.key_file(i), '.')
-            c.put(PathMaker.t_key_file(),'.')
-            c.put(PathMaker.t_testdata_file(),'.')
-
             c.put("ip_file",'.')
             #c.put(PathMaker.parameters_file(), '.')
         Print.info('Booting primaries...')
-        st_time = round(time.time() * 1000) + 60000
-        batches = 1
-        per_batch = 2000
-        exp_vals = self.exp_setup(4)
-        import numpy as np
-        tri = np.max(exp_vals) - np.min(exp_vals)
         for i, ip in enumerate(hosts):
             if i == 0:
                 # Run syncer first
                 print('Running syncer')
-                sync_cmd = CommandMaker.run_syncer(PathMaker.key_file(i), PathMaker.t_testdata_file(), self.byzantine)
+                sync_cmd = CommandMaker.run_syncer(PathMaker.key_file(i), self.msg_size, self.byzantine)
                 print(sync_cmd)
                 sync_log = PathMaker.syncer_log_file()
                 self._background_run(ip, sync_cmd, sync_log)
 
             # Run primary on all nodes
-            unzip_cmd = CommandMaker.unzip_tkeys('data.tar.gz')
-            print(unzip_cmd)
-            self._background_run(ip, unzip_cmd, "unzip.log")
-
             cmd = CommandMaker.run_primary(
                 PathMaker.key_file(i),
                 self.protocol,
-                self.bfile,
+                self.msg_size,
                 self.byzantine,
                 self.crash,
             )
@@ -318,23 +305,18 @@ class Bench:
                 print('Running syncer')
                 cmd = CommandMaker.run_syncer(
                     PathMaker.key_file(i),
-                    PathMaker.t_testdata_file(),
+                    self.msg_size,
                     self.byzantine
                 )
                 print(cmd)
                 log_file = PathMaker.syncer_log_file()
                 self._background_run(ip, cmd, log_file)
 
-            # Optionally unzip tkeys/tdata if not guaranteed to exist
-            unzip_cmd = CommandMaker.unzip_tkeys("data.tar.gz")
-            print(unzip_cmd)
-            self._background_run(ip, unzip_cmd, "unzip.log")
-
             # Run primary
             cmd = CommandMaker.run_primary(
                 PathMaker.key_file(i),
                 self.protocol,
-                self.bfile,
+                self.msg_size,
                 self.byzantine,
                 self.crash
             )
@@ -386,7 +368,7 @@ class Bench:
             raise BenchError('Invalid nodes or bench parameters', e)
 
         self.protocol = bench_parameters.protocol
-        self.bfile = bench_parameters.bfile
+        self.msg_size = bench_parameters.msg_size
         self.byzantine = bench_parameters.byzantine
         self.crash = bench_parameters.crash
         # Select which hosts to use.

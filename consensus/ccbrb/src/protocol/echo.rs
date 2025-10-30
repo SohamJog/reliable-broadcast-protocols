@@ -1,9 +1,9 @@
 use crate::msg::{EchoMsg, SendMsg};
-use crate::protocol::echo;
+
 use crate::Status;
 use crate::{Context, ProtMsg};
 use bincode;
-use crypto::hash::{do_hash, Hash};
+use crypto::hash::{do_hash};
 use network::{plaintcp::CancelHandler, Acknowledgement};
 use reed_solomon_rs::fec::fec::*;
 use types::WrapperMsg;
@@ -76,7 +76,7 @@ impl Context {
         );
         // rbc_context.status = Status::ECHO;
 
-        if (!self.crash) {
+        if !self.crash {
             for replica in 0..self.num_nodes {
                 let share = if self.byz && replica != self.myid {
                     msg.d_j.clone()

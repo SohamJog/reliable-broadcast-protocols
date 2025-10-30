@@ -4,6 +4,9 @@
 .vscode
 *.csv
 logs.txt
+
+*.txt
+
 c5-exp-data.zip
 anon-sosp-ucr.zip
 perf.data.old

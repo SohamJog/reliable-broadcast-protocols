@@ -123,7 +123,7 @@ impl Context {
                 }
             }
 
-            let echo_senders_clone = if should_reconstruct_opt_commit || should_reconstruct_latch || should_reconstruct_nf {
+            let _echo_senders_clone = if should_reconstruct_opt_commit || should_reconstruct_latch || should_reconstruct_nf {
                 Some(echo_senders.clone())
             } else {
                 None
@@ -181,7 +181,7 @@ impl Context {
                 let my_mp = merkle_tree.gen_proof(self.myid);
                 let out_msg = CTRBCMsg { shard: my_share.clone(), mp: my_mp.clone(), origin: self.myid };
 
-                let mut rbc_context = self.rbc_context.get_mut(&instance_id).unwrap();
+                let rbc_context = self.rbc_context.get_mut(&instance_id).unwrap();
                 
                 rbc_context.echo_root = Some(root);
                 rbc_context.fragment = Some((my_share.clone(), my_mp.clone()));
@@ -193,6 +193,7 @@ impl Context {
                      if !self.crash {
                          self.broadcast(ProtMsg::Ready(out_msg.clone(), instance_id)).await;
                      }
+                     log::info!("Terminated RBC after optimistic RBC path");
                      self.terminate(message).await;
                      return;
                 }
@@ -213,7 +214,7 @@ impl Context {
         // Handle Optimistic termination at n
         if should_terminate_n {
             log::info!(
-                "Received n ECHO messages for RBC instance id {}, terminating",
+                "Received n ECHO messages for RBC instance id {}, committed through fast path of CT-RBC",
                 instance_id
             );
             

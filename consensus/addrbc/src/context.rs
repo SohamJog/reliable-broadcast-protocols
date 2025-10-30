@@ -22,7 +22,6 @@ use types::{Replica, SyncMsg, SyncState};
 use super::{Handler, ProtMsg, RBCState, SyncHandler};
 
 use crate::Status;
-use tokio::time::{sleep, Duration};
 use types::WrapperMsg;
 
 pub struct Context {

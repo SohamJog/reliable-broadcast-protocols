@@ -33,10 +33,10 @@ args:
         long: syncer
         help: IPs for the syncer to connect to
         takes_value: true
-    - bfile:
-        short: b
-        long: bfile
-        help: The location of a file containing the list of all messages to be reliably broadcasted
+    - msg_size:
+        short: s
+        long: msg_size
+        help: The size of the messages to be reliably broadcasted
         takes_value: true
     - byz:
         short: z

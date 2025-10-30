@@ -218,7 +218,7 @@ class BenchParameters:
             self.byzantine = bool(json['byzantine']) if 'byzantine' in json else False
             self.crash = bool(json['crash']) if 'crash' in json else False
             self.protocol = json['protocol'] if 'protocol' in json else 'addrbc'
-            self.bfile = json['bfile'] if 'bfile' in json else 'longer_test_msgs.txt'
+            self.msg_size = json['msg_size'] if 'bfile' in json else 10240
 
             self.runs = int(json['runs']) if 'runs' in json else 1
         except KeyError as e:

@@ -22,7 +22,7 @@ crash=${7:-true}
     --protocol sync \
     --input 100 \
     --syncer "$1" \
-    --bfile "$4" \
+    --msg_size "$4" \
     --byzantine false \
     --crash false > logs/syncer.log &
 
@@ -35,7 +35,7 @@ for ((i=0; i<NUM_NODES; i++)); do
         --protocol "$protocol" \
         --input "$2" \
         --syncer "$1" \
-        --bfile "$4" \
+        --msg_size "$4" \
         --byzantine "$3" \
         --crash "$crash" > logs/$i.log &
 done

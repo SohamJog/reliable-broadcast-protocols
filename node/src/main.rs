@@ -25,9 +25,12 @@ async fn main() -> Result<()> {
     let syncer_file = m
         .value_of("syncer")
         .expect("Unable to parse syncer ip file");
-    let broadcast_msgs_file = m
-        .value_of("bfile")
-        .expect("Unable to parse broadcast messages file");
+    
+    let msg_size: u64 = m
+        .value_of("msg_size")
+        .unwrap_or("1024")
+        .parse()
+        .expect("Unable to parse message size");
     let byz_flag = m.value_of("byz").expect("Unable to parse Byzantine flag");
     let crash_flag = m.value_of("crash").unwrap_or("true");
     let node_crash: bool = match crash_flag {
@@ -142,7 +145,7 @@ async fn main() -> Result<()> {
             exit_tx = Syncer::spawn(
                 net_map,
                 config.client_addr.clone(),
-                broadcast_msgs_file.to_string(),
+                msg_size,
             )
             .unwrap();
         }

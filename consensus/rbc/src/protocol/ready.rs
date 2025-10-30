@@ -71,7 +71,7 @@ impl Context {
 
             // on t + 1 readys
             if max_count == self.num_faults + 1 && !rbc_context.second_ready {
-                if let Some(hash) = mode_content {
+                if let Some(_hash) = mode_content {
                     // log::info!(
                     //     "On t + 1 readys, sending READY with content {:?}. Instance id: {}",
                     //     hash,

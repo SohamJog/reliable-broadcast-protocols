@@ -30,23 +30,23 @@ class CommandMaker:
         return f'./genconfig --blocksize 100 --delay 100 --base_port {bport} --client_base_port {client_bport} --NumNodes {num_nodes} --target . --client_run_port {client_run_port} --local true'
 
     @staticmethod
-    def run_primary(key, protocol, bfile, byzantine, crash, debug=False):
+    def run_primary(key, protocol, msg_size, byzantine, crash, debug=False):
         assert isinstance(key, str)
         assert isinstance(protocol, str)
-        assert isinstance(bfile, str)
+        assert isinstance(msg_size, int)
         assert isinstance(byzantine, bool)
         assert isinstance(crash, bool)
         assert isinstance(debug, bool)
         return (f'ulimit -n 8500; ./node --config {key} --ip ip_file '
-                f'--protocol {protocol} --input xx --syncer syncer --bfile {bfile} --byzantine {str(byzantine).lower()} --crash {str(crash).lower()}')
+                f'--protocol {protocol} --input xx --syncer syncer --msg_size {msg_size} --byzantine {str(byzantine).lower()} --crash {str(crash).lower()}')
  
     
     @staticmethod
-    def run_syncer(key, bfile, byzantine, debug=False):
+    def run_syncer(key, msg_size, byzantine, debug=False):
         assert isinstance(key, str)
         assert isinstance(debug, bool)
         return (f'ulimit -n 8500; ./node --config {key} --ip ip_file '
-            f'--protocol sync --input xx --syncer syncer --bfile {bfile} --byzantine {str(byzantine).lower()}')
+            f'--protocol sync --input xx --syncer syncer --msg_size {msg_size} --byzantine {str(byzantine).lower()}')
 
 
     @staticmethod

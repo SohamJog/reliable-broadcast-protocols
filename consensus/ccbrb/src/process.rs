@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::ProtMsg;
 use crate::context::Context;
-use crate::msg::{EchoMsg, ReadyMsg, SendMsg};
+
 use crypto::hash::verf_mac;
 use types::{SyncMsg, SyncState, WrapperMsg};
 

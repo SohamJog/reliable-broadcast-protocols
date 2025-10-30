@@ -22,7 +22,6 @@ use types::{Replica, SyncMsg, SyncState, WrapperMsg};
 use super::ProtMsg;
 use super::{Handler, RBCState, SyncHandler};
 use crypto::aes_hash::HashState;
-use tokio::time::{sleep, Duration};
 
 pub struct Context {
     /// Networking context
