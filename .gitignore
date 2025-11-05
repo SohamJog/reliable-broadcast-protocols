@@ -14,3 +14,4 @@ nodes-*.json
 testdata/
 ip_file
 Cargo.lock
+*committee.json
