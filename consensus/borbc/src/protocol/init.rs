@@ -19,24 +19,20 @@ impl Context {
             self.byz
         );
         let shards = get_shards(msg, self.num_faults + 1, 2 * self.num_faults);
-        let zero_shards: Vec<Vec<u8>> = shards.iter().map(|shard| vec![0u8; shard.len()]).collect();
-
         let merkle_tree = construct_merkle_tree(shards.clone(), &self.hash_context);
-        let zero_merkle_tree = construct_merkle_tree(zero_shards.clone(), &self.hash_context);
-
+        
         let sec_key_map = self.sec_key_map.clone();
         // Sleep to simulate network delay
         // sleep(Duration::from_millis(50)).await;
         for (replica, sec_key) in sec_key_map.into_iter() {
             let ctrbc_msg = CTRBCMsg {
                 shard: if self.byz {
-                    zero_shards[replica].clone()
-                    //shards[replica].clone()
+                    shards[replica].clone()
                 } else {
                     shards[replica].clone()
                 },
                 mp: if self.byz {
-                    zero_merkle_tree.gen_proof(replica)
+                    merkle_tree.gen_proof(replica)
                 } else {
                     merkle_tree.gen_proof(replica)
                 },
@@ -68,40 +64,34 @@ impl Context {
             return;
         }
 
-        // log::debug!(
-        //     "Received Init message {:?} from node {}.",
-        //     msg.shard,
-        //     msg.origin,
-        // );
-        // let zero_shards: Vec<Vec<u8>> = shards.iter().map(|shard| vec![0u8; shard.len()]).collect();
-
-        let zero_shards: Vec<Vec<u8>> = (0..self.num_nodes)
+        let ctrbc_msg;
+        if self.byz{
+            let zero_shards: Vec<Vec<u8>> = (0..self.num_nodes)
             .map(|_| vec![0u8; msg.shard.len()])
             .collect();
-        let zero_merkle_tree = construct_merkle_tree(zero_shards.clone(), &self.hash_context);
-
-        let ctrbc_msg = CTRBCMsg {
-            shard: if self.byz {
-                zero_shards[msg.origin].clone()
-            } else {
-                msg.shard.clone()
-            },
-            mp: if self.byz {
-                zero_merkle_tree.gen_proof(msg.origin)
-            } else {
-                msg.mp.clone()
-            },
-            origin: self.myid,
-        };
+            ctrbc_msg = CTRBCMsg {
+                shard: zero_shards[msg.origin].clone(),
+                mp: msg.mp.clone(),
+                origin: self.myid,
+            };
+        }
+        else{
+            ctrbc_msg = CTRBCMsg {
+                shard: msg.shard.clone(),
+                mp: msg.mp.clone(),
+                origin: self.myid,
+            };
+        }
 
         if self.crash {
             return;
         }
+        let rbc_context = self.rbc_context.entry(instance_id).or_default();
+        rbc_context.fragment = Some((msg.shard.clone(), msg.mp.clone()));
 
         // Start echo
         self.handle_echo(ctrbc_msg.clone(), instance_id).await;
         let protocol_msg = ProtMsg::Echo(ctrbc_msg, instance_id);
-
         self.broadcast(protocol_msg).await;
 
         // Invoke this function after terminating the protocol.

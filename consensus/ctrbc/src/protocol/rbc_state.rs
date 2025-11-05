@@ -11,7 +11,7 @@ pub struct RBCState{
     pub fragment: Option<(Vec<u8>, Proof)>,
     pub message: Option<Vec<u8>>,
 
-    pub terminated: bool
+    pub terminated: bool,
 }
 
 impl RBCState{

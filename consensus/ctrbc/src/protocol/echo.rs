@@ -13,15 +13,18 @@ impl Context {
         4. reconstruct merkle tree, verify roots match.
         5. if all pass, send ready <fi, pi>
          */
-
+        log::info!("Received echo message from node {} for RBC instance id {}", msg.origin, instance_id);
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
 
         if rbc_context.terminated {
             // RBC Already terminated, skip processing this message
             return;
         }
+        let root = msg.mp.root();
+        let echo_senders = rbc_context.echos.entry(root).or_default();
+
         // check if verifies
-        if !msg.verify_mr_proof(&self.hash_context) {
+        if !echo_senders.contains_key(&msg.origin) && !msg.verify_mr_proof(&self.hash_context) {
             log::error!(
                 "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
                 msg.origin,
@@ -30,17 +33,13 @@ impl Context {
             return;
         }
 
-        let root = msg.mp.root();
-        let echo_senders = rbc_context.echos.entry(root).or_default();
-
-        if echo_senders.contains_key(&msg.origin) {
-            return;
+        if !echo_senders.contains_key(&msg.origin) {
+            echo_senders.insert(msg.origin, msg.shard);
         }
-
-        echo_senders.insert(msg.origin, msg.shard);
-
+        
+        let echo_sender = msg.origin;
         let size = echo_senders.len().clone();
-        if size == self.num_nodes - self.num_faults {
+        if size == self.num_nodes - self.num_faults && rbc_context.echo_root.is_none() {
             log::info!(
                 "Received n-f ECHO messages for RBC Instance ID {}, sending READY message",
                 instance_id
@@ -74,27 +73,35 @@ impl Context {
                 message.extend(shards.get(i).clone().unwrap());
             }
 
+            // Hashes on large messages are very expensive. Do as much as you can to avoid recomputing them.
             let my_share: Vec<u8> = shards[self.myid].clone();
-
+            let my_proof;
+            if rbc_context.fragment.is_some() && rbc_context.fragment.clone().unwrap().1.root() == root {
+                my_proof = rbc_context.fragment.clone().unwrap().1;
+            } else {
+                my_proof = construct_merkle_tree(shards.clone(), &self.hash_context).gen_proof(self.myid);
+            }
             // Reconstruct Merkle Root
-            let merkle_tree = construct_merkle_tree(shards, &self.hash_context);
-            if merkle_tree.root() == root {
+            //let merkle_tree = construct_merkle_tree(shards, &self.hash_context);
+            //log::info!("Reconstructing tree in echo phase for RBC instance id {}", instance_id);
+
+            //if merkle_tree.root() == root {
                 // ECHO phase is completed. Save our share and the root for later purposes and quick access.
                 rbc_context.echo_root = Some(root);
-                rbc_context.fragment = Some((my_share.clone(), merkle_tree.gen_proof(self.myid)));
+                rbc_context.fragment = Some((my_share.clone(), my_proof.clone()));
                 rbc_context.message = Some(message);
 
                 // Send ready message
                 let ctrbc_msg = CTRBCMsg {
                     shard: my_share,
-                    mp: merkle_tree.gen_proof(self.myid),
+                    mp: my_proof,
                     origin: self.myid,
                 };
 
                 self.handle_ready(ctrbc_msg.clone(), instance_id).await;
                 let ready_msg = ProtMsg::Ready(ctrbc_msg, instance_id);
                 self.broadcast(ready_msg).await;
-            }
+            //}
         }
         // Go for optimistic termination if all n shares have appeared
         else if size == self.num_nodes {
@@ -118,21 +125,23 @@ impl Context {
                 if self.crash {
                     return;
                 }
-
-                let fragment = rbc_context.fragment.clone().unwrap();
-                let ctrbc_msg = CTRBCMsg {
-                    shard: fragment.0,
-                    mp: fragment.1,
-                    origin: self.myid,
-                };
+                // Sending READY again is not necessary because we already sent one
+                // let fragment = rbc_context.fragment.clone().unwrap();
+                // let ctrbc_msg = CTRBCMsg {
+                //     shard: fragment.0,
+                //     mp: fragment.1,
+                //     origin: self.myid,
+                // };
 
                 let message = rbc_context.message.clone().unwrap();
 
-                let ready_msg = ProtMsg::Ready(ctrbc_msg, instance_id);
+                // let ready_msg = ProtMsg::Ready(ctrbc_msg, instance_id);
 
-                self.broadcast(ready_msg).await;
-                self.terminate(message).await;
+                // self.broadcast(ready_msg).await;
+                log::info!("Terminated RBC with message length {}",message.len());
+                self.terminate(instance_id, message).await;
             }
         }
+        log::info!("Handled echo sent by node {} for RBC instance id {}", echo_sender, instance_id);
     }
 }

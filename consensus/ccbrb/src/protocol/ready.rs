@@ -339,7 +339,12 @@ impl Context {
                     );
                     rbc_context.status = Status::TERMINATED;
                     let output_message = recomputed_shards.concat();
-                    self.terminate(output_message).await;
+                    log::info!(
+                        "RBC instance {} successfully terminated with output message of length {}",
+                        instance_id,
+                        output_message.len()
+                    );
+                    self.terminate(instance_id, output_message).await;
                     return;
                 } else {
                     log::warn!(" M failed verification against D′, discarding");
@@ -348,7 +353,7 @@ impl Context {
                     assert!(instance_id / 10000 < self.num_faults);
                     rbc_context.status = Status::TERMINATED;
                     let empty_output: Vec<u8> = vec![];
-                    self.terminate(empty_output).await; // bottom
+                    self.terminate(instance_id, empty_output).await; // bottom
                     return;
                 }
             } else {

@@ -57,8 +57,13 @@ impl Context {
     }
 
     // Invoke this function once you terminate the protocol
-    pub async fn terminate(&mut self, data: Vec<u8>) {
-        let cancel_handler = self
+    pub async fn terminate(&mut self, instance_id: usize, data: Vec<u8>) {
+        log::info!("Terminating RBC instance id: {:?} {}", instance_id, self.term_instances.len());
+        self.term_instances.insert(instance_id);
+        if self.term_instances.len() == self.num_nodes && !self.sent_term{
+            self.sent_term = true;
+            log::info!("All RBC instances terminated, sending to sync module");
+            let cancel_handler = self
             .sync_send
             .send(
                 0,
@@ -67,8 +72,8 @@ impl Context {
                     state: SyncState::COMPLETED,
                     value: data,
                 },
-            )
-            .await;
-        self.add_cancel_handler(cancel_handler);
+            ).await;
+            self.add_cancel_handler(cancel_handler);
+        }
     }
 }

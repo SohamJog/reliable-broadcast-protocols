@@ -4,19 +4,42 @@ use crate::Context;
 impl Context {
     pub async fn handle_vote(self: &mut Context, msg: CTRBCMsg, instance_id: usize) {
         let rbc_context = self.rbc_context.entry(instance_id).or_default();
-        if rbc_context.terminated { return; }
+        if rbc_context.terminated { 
+            return; 
+        }
 
-       if !msg.verify_mr_proof(&self.hash_context) {
-            log::warn!("Invalid Merkle proof in Vote from {} for RBC {}", msg.origin, instance_id);
-            return;
-        } 
         let root = msg.mp.root();
-
         // Record this vote
+        let echo_senders = rbc_context.echos.entry(root).or_default();
         let vote_senders = rbc_context.votes.entry(root).or_default();
-        if vote_senders.contains_key(&msg.origin) { return; }
-        vote_senders.insert(msg.origin, msg.shard.clone());
-
+        if !echo_senders.contains_key(&msg.origin) {
+            if !msg.verify_mr_proof(&self.hash_context){
+                log::error!(
+                    "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
+                    msg.origin,
+                    instance_id
+                );
+                return;
+            }
+        }
+        else{
+            let msg_echo = echo_senders.get(&msg.origin).unwrap().clone();
+            if msg_echo != msg.shard {
+                if !msg.verify_mr_proof(&self.hash_context){
+                    log::error!(
+                        "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
+                        msg.origin,
+                        instance_id
+                    );
+                    return;
+                }
+                vote_senders.insert(msg.origin, msg.shard.clone());
+            }
+            else{
+                vote_senders.insert(msg.origin, msg.shard.clone());
+            }
+        }
+        
         let votes_now = vote_senders.len();
 
         // If we haven't sent READY yet and we have enough VOTEs (ceil((n+f-1)/2)), send READY

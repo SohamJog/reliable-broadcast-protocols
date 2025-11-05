@@ -153,7 +153,7 @@ impl Syncer {
                             let rbc_msg: RBCSyncMsg = bincode::deserialize(&msg.value).expect("Unable to deserialize message received from node");
 
 
-                            let latency_map = self.rbc_complete_times.entry(rbc_msg.id).or_default();
+                            let latency_map = self.rbc_complete_times.entry(0).or_default();
                             let _len = latency_map.len();
                             latency_map.insert(msg.sender, SystemTime::now()
                             .duration_since(UNIX_EPOCH)
@@ -171,18 +171,18 @@ impl Syncer {
                             // log::info!("ID: {}, Sender: {}, Latency map: {:?}", rbc_msg.id, msg.sender,  latency_map);
 
 
-                            let value_set = self.rbc_comp_values.entry(rbc_msg.id).or_default();
+                            let value_set = self.rbc_comp_values.entry(0).or_default();
                             value_set.insert(rbc_msg.msg);
                             if latency_map.len() == self.num_nodes{
 
                                 self.ready_for_broadcast = true;
 
-                                if self.rbc_start_times.get(&rbc_msg.id).is_none(){
+                                if self.rbc_start_times.get(&0).is_none(){
                                     log::error!("Missing start time for RBC id {}", rbc_msg.id);
                                     continue;
                                 }
                                 let start_time = self.rbc_start_times
-                                .get(&rbc_msg.id)
+                                .get(&0)
                                 .expect(&format!("Missing start time for RBC id {}", rbc_msg.id));
                                 log::info!("start time: {:?}, msg id: {}",start_time, rbc_msg.id);
                                 // All nodes terminated protocol
@@ -242,7 +242,7 @@ impl Syncer {
                             //     continue;
                             // }
 
-                            let msg_id = replica*10000+self.rbc_id;
+                            let msg_id = 0;
                             let sync_rbc_msg = RBCSyncMsg{
                                 id: msg_id,
                                 msg: self.broadcast_msgs.clone(),
@@ -256,13 +256,14 @@ impl Syncer {
 
                             self.add_cancel_handler(cancel_handler);
                             log::info!("Sent START message to node {}", replica);
-                            let start_time = SystemTime::now()
+
+                            
+                        }
+                        let start_time = SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap()
                             .as_millis();
-
-                            self.rbc_start_times.insert(msg_id, start_time);
-                        }
+                        self.rbc_start_times.insert(0, start_time);
                     }
                 }
             }

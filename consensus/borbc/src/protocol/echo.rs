@@ -10,6 +10,7 @@ impl Context {
         let root = msg.mp.root();
         
         // Use an inner scope to limit the lifetime of the mutable borrow 'rbc_context'
+        // You can just reborrow to avoid this problem. This code layout is quite confusing. 
         let (
             should_broadcast_vote, 
             vote_msg, 
@@ -29,9 +30,10 @@ impl Context {
                 // RBC Already terminated, skip processing this message
                 return;
             }
-            
-            // Check if verifies
-            if !msg.verify_mr_proof(&self.hash_context) {
+
+            let echo_senders = rbc_context.echos.entry(root).or_default();
+            // check if verifies
+            if !echo_senders.contains_key(&msg.origin) && !msg.verify_mr_proof(&self.hash_context) {
                 log::error!(
                     "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
                     msg.origin,
@@ -40,13 +42,9 @@ impl Context {
                 return;
             }
 
-            let echo_senders = rbc_context.echos.entry(root).or_default();
-
-            if echo_senders.contains_key(&msg.origin) {
-                return;
+            if !echo_senders.contains_key(&msg.origin) {
+                echo_senders.insert(msg.origin, msg.shard.clone());
             }
-
-            echo_senders.insert(msg.origin, msg.shard.clone());
 
             let size = echo_senders.len(); // '.clone()' is unnecessary for len()
 
@@ -154,13 +152,14 @@ impl Context {
         }
         
         if should_reconstruct_opt_commit || (ready_quorum_reached && should_reconstruct_latch) || should_reconstruct_nf {
-            let senders = self.rbc_context.get(&instance_id).unwrap().echos.get(&root).unwrap().clone();
+            let rbc_context = self.rbc_context.entry(instance_id).or_default();
+
+            let senders = rbc_context.echos.get(&root).unwrap().clone();
             
             let mut shards_opt: Vec<Option<Vec<u8>>> = (0..self.num_nodes).map(|rep|
                  senders.get(&rep).cloned()
              ).collect();
-
-            
+                        
             let status = reconstruct_data(&mut shards_opt, self.num_faults + 1, 2 * self.num_faults); // Added +1 to 2*self.num_faults to match Reed-Solomon 'n'
             
             if let Err(e) = status {
@@ -175,26 +174,32 @@ impl Context {
             }
             let my_share: Vec<u8> = shards[self.myid].clone();
 
-            let merkle_tree = construct_merkle_tree(shards.clone(), &self.hash_context);
-            
-            if merkle_tree.root() == root {
-                let my_mp = merkle_tree.gen_proof(self.myid);
-                let out_msg = CTRBCMsg { shard: my_share.clone(), mp: my_mp.clone(), origin: self.myid };
+            // Hashes on large messages are very expensive. Do as much as you can to avoid recomputing them.
+            let my_proof;
+            if rbc_context.fragment.is_some() && rbc_context.fragment.clone().unwrap().1.root() == root {
+                my_proof = rbc_context.fragment.clone().unwrap().1;
+            } else {
+                my_proof = construct_merkle_tree(shards.clone(), &self.hash_context).gen_proof(self.myid);
+            }
+
+            // if merkle_tree.root() == root {
+                //let my_mp = merkle_tree.gen_proof(self.myid);
+                let out_msg = CTRBCMsg { shard: my_share.clone(), mp: my_proof.clone(), origin: self.myid };
 
                 let rbc_context = self.rbc_context.get_mut(&instance_id).unwrap();
                 
                 rbc_context.echo_root = Some(root);
-                rbc_context.fragment = Some((my_share.clone(), my_mp.clone()));
+                rbc_context.fragment = Some((my_share.clone(), my_proof.clone()));
                 rbc_context.message = Some(message.clone());
                 
                 if should_reconstruct_opt_commit || should_reconstruct_latch {
                      rbc_context.terminated = true;
-                     
-                     if !self.crash {
+
+                     if !self.crash && !should_broadcast_ready_1 {
                          self.broadcast(ProtMsg::Ready(out_msg.clone(), instance_id)).await;
                      }
                      log::info!("Terminated RBC after optimistic RBC path");
-                     self.terminate(message).await;
+                     self.terminate(instance_id, message).await;
                      return;
                 }
                 
@@ -208,7 +213,7 @@ impl Context {
                     let ready_msg = ProtMsg::Ready(out_msg, instance_id);
                     self.broadcast(ready_msg).await;
                 }
-            }
+            // }
         }
         
         // Handle Optimistic termination at n
@@ -222,7 +227,7 @@ impl Context {
                 let ready_msg = ProtMsg::Ready(ready_msg_n.unwrap(), instance_id);
                 self.broadcast(ready_msg).await;
             }
-            self.terminate(message_n.unwrap()).await;
+            self.terminate(instance_id, message_n.unwrap()).await;
         }
     }
 }

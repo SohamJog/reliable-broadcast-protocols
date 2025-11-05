@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     net::{SocketAddr, SocketAddrV4},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -53,6 +53,9 @@ pub struct Context {
     pub threshold: usize,
 
     pub max_id: usize,
+
+    pub term_instances: HashSet<usize>,
+    pub sent_term: bool,
 }
 
 impl Context {
@@ -123,6 +126,9 @@ impl Context {
                 threshold: 10000,
 
                 max_id: rbc_start_id,
+
+                term_instances: HashSet::new(),
+                sent_term: false,
             };
 
             // Populate secret keys from config

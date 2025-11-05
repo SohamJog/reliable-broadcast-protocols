@@ -13,30 +13,45 @@ impl Context {
         if rbc_context.terminated {
             return;
         }
-        if !msg.verify_mr_proof(&self.hash_context) {
-            log::error!(
-                "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
-                msg.origin,
-                instance_id
-            );
-            return;
-        }
 
         let root = msg.mp.root();
+        let echo_senders = rbc_context.echos.entry(root).or_default();
         let ready_senders = rbc_context.readys.entry(root).or_default();
 
-        if ready_senders.contains_key(&msg.origin) {
-            return;
+        // Hashes on large messages are very expensive. Do as much as you can to avoid recomputing them.
+        if !echo_senders.contains_key(&msg.origin) {
+            if !msg.verify_mr_proof(&self.hash_context){
+                log::error!(
+                    "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
+                    msg.origin,
+                    instance_id
+                );
+                return;
+            }
         }
-
-        ready_senders.insert(msg.origin, msg.shard);
-
+        else{
+            let msg_echo = echo_senders.get(&msg.origin).unwrap().clone();
+            if msg_echo != msg.shard {
+                if !msg.verify_mr_proof(&self.hash_context){
+                    log::error!(
+                        "Invalid Merkle Proof sent by node {}, abandoning RBC instance {}",
+                        msg.origin,
+                        instance_id
+                    );
+                    return;
+                }
+                ready_senders.insert(msg.origin, msg.shard);
+            }
+            else{
+                ready_senders.insert(msg.origin, msg.shard);
+            }
+        }
+        
         let size = ready_senders.len().clone();
 
         if size == self.num_faults + 1 {
             // Sent ECHOs and getting a ready message for the same ECHO
             if rbc_context.echo_root.is_some() && rbc_context.echo_root.clone().unwrap() == root {
-              
                 return;
             }
 
@@ -68,14 +83,17 @@ impl Context {
             for i in 0..self.num_faults + 1 {
                 message.extend(shards.get(i).clone().unwrap());
             }
-
             let my_share: Vec<u8> = shards[self.myid].clone();
-
-            // Reconstruct Merkle Root
-            let merkle_tree = construct_merkle_tree(shards, &self.hash_context);
-            if merkle_tree.root() == root {
+            let my_proof;
+            if rbc_context.fragment.is_some() && rbc_context.fragment.clone().unwrap().1.root() == root {
+                my_proof = rbc_context.fragment.clone().unwrap().1;
+            } else {
+                my_proof = construct_merkle_tree(shards.clone(), &self.hash_context).gen_proof(self.myid);
+            }
+            
+            // if merkle_tree.root() == root {
                 // Ready phase is completed. Save our share for later purposes and quick access.
-                rbc_context.fragment = Some((my_share.clone(), merkle_tree.gen_proof(self.myid)));
+                rbc_context.fragment = Some((my_share.clone(), my_proof.clone()));
 
                 rbc_context.message = Some(message);
 
@@ -88,7 +106,7 @@ impl Context {
                 // Send ready message
                 let ctrbc_msg = CTRBCMsg {
                     shard: my_share,
-                    mp: merkle_tree.gen_proof(self.myid),
+                    mp: my_proof,
                     origin: self.myid,
                 };
 
@@ -97,47 +115,51 @@ impl Context {
                 if !self.crash {
                     self.broadcast(ready_msg).await;
                 }
-            }
-        } else if size == 2 * self.num_faults + 1 && !rbc_context.terminated {
-    rbc_context.ready_quorum_reached = true;
+            // }
+        } 
+        else if size == 2 * self.num_faults + 1 && !rbc_context.terminated {
+            
+            rbc_context.ready_quorum_reached = true;
+            let latch_echo_thresh = (self.num_nodes - self.num_faults + 1 + 1) / 2;
+            if let Some(root) = rbc_context.echo_root.clone() {
+                if let Some(echo_senders) = rbc_context.echos.get(&root) {
+                    if echo_senders.len() >= latch_echo_thresh {
+                        let msg = rbc_context.message.clone().unwrap();
+                        rbc_context.terminated = true;
+                        self.terminate(instance_id,msg).await;
+                        // // Let echo.rs shared code handle reconstruction & termination (to avoid duplication)
+                        // // Reuse the same reconstruct block you already have (or factor into a helper).
+                        // let senders = echo_senders.clone();
+                        // let mut shards: Vec<Option<Vec<u8>>> =
+                        //     (0..self.num_nodes).map(|rep| senders.get(&rep).cloned()).collect();
 
-    let latch_echo_thresh = (self.num_nodes - self.num_faults + 1 + 1) / 2;
-    if let Some(root) = rbc_context.echo_root.clone() {
-        if let Some(echo_senders) = rbc_context.echos.get(&root) {
-            if echo_senders.len() >= latch_echo_thresh {
-                // Let echo.rs shared code handle reconstruction & termination (to avoid duplication)
-                // Reuse the same reconstruct block you already have (or factor into a helper).
-                let senders = echo_senders.clone();
-                let mut shards: Vec<Option<Vec<u8>>> =
-                    (0..self.num_nodes).map(|rep| senders.get(&rep).cloned()).collect();
+                        // let status = reconstruct_data(&mut shards, self.num_faults + 1, 2 * self.num_faults);
+                        // if let Err(e) = status {
+                        //     log::error!("FATAL: Error in Lagrange interpolation {}", e);
+                        //     return;
+                        // }
+                        // let shards: Vec<Vec<u8>> = shards.into_iter().map(|opt| opt.unwrap()).collect();
 
-                let status = reconstruct_data(&mut shards, self.num_faults + 1, 2 * self.num_faults);
-                if let Err(e) = status {
-                    log::error!("FATAL: Error in Lagrange interpolation {}", e);
-                    return;
-                }
-                let shards: Vec<Vec<u8>> = shards.into_iter().map(|opt| opt.unwrap()).collect();
+                        // let mut message = Vec::new();
+                        // for i in 0..self.num_faults + 1 { message.extend(shards.get(i).unwrap()); }
+                        // let my_share: Vec<u8> = shards[self.myid].clone();
 
-                let mut message = Vec::new();
-                for i in 0..self.num_faults + 1 { message.extend(shards.get(i).unwrap()); }
-                let my_share: Vec<u8> = shards[self.myid].clone();
-
-                let merkle_tree = construct_merkle_tree(shards, &self.hash_context);
-                if merkle_tree.root() == root {
-                    rbc_context.fragment = Some((my_share.clone(), merkle_tree.gen_proof(self.myid)));
-                    rbc_context.message = Some(message);
-                    rbc_context.terminated = true;
-                    let term_msg = rbc_context.message.clone().unwrap();
-                    if !self.crash {
-                        let out = CTRBCMsg { shard: my_share, mp: merkle_tree.gen_proof(self.myid), origin: self.myid };
-                        self.broadcast(ProtMsg::Ready(out, instance_id)).await;
+                        // let merkle_tree = construct_merkle_tree(shards, &self.hash_context);
+                        // if merkle_tree.root() == root {
+                        //     rbc_context.fragment = Some((my_share.clone(), merkle_tree.gen_proof(self.myid)));
+                        //     rbc_context.message = Some(message);
+                        //     rbc_context.terminated = true;
+                        //     let term_msg = rbc_context.message.clone().unwrap();
+                        //     if !self.crash {
+                        //         let out = CTRBCMsg { shard: my_share, mp: merkle_tree.gen_proof(self.myid), origin: self.myid };
+                        //         self.broadcast(ProtMsg::Ready(out, instance_id)).await;
+                        //     }
+                        //     self.terminate(instance_id,term_msg).await;
+                        // }
                     }
-                    self.terminate(term_msg).await;
                 }
             }
         }
     }
 }
-}}
-
 
