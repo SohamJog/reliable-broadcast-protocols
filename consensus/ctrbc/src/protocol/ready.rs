@@ -18,7 +18,6 @@ impl Context {
 
         let root = msg.mp.root();
         let echo_senders = rbc_context.echos.entry(root).or_default();
-        // check if verifies
         let ready_senders = rbc_context.readys.entry(root).or_default();
 
         // Hashes on large messages are very expensive. Do as much as you can to avoid recomputing them.
