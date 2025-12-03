@@ -11,6 +11,7 @@ use network::{
     Acknowledgement,
 };
 
+use serde::{Deserialize, Serialize};
 use tokio::{
     sync::{
         mpsc::{unbounded_channel, UnboundedReceiver},
@@ -18,7 +19,7 @@ use tokio::{
     },
     time,
 };
-use types::{RBCSyncMsg, Replica, SyncMsg, SyncState};
+use types::{Replica, SyncMsg, SyncState};
 
 use crate::SyncHandler;
 
@@ -273,4 +274,10 @@ impl Syncer {
     pub fn add_cancel_handler(&mut self, canc: CancelHandler<Acknowledgement>) {
         self.cancel_handlers.push(canc);
     }
+}
+
+#[derive(Debug,Serialize,Deserialize,Clone)]
+pub struct RBCSyncMsg {
+    pub id: usize,
+    pub msg: Vec<u8>,
 }

@@ -7,12 +7,11 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
-types = { package = "types", path="../types"}
-crypto = { package = "crypto", path="../crypto"}
-serde_json = "1.0"
-serde_yaml = "0.8"
-toml = "0.5"
-bincode = "1"
-log="*"
+clap = {version = "2", features = ["yaml"]}
+config = { package = "config", git = "https://github.com/akhilsb/Secure-Distributed-Computing-Protocols.git"}
+types = { package = "types", git = "https://github.com/akhilsb/Secure-Distributed-Computing-Protocols.git"}
+crypto = { package = "crypto", git = "https://github.com/akhilsb/Secure-Distributed-Computing-Protocols.git"}
+util = { package = "util", git = "https://github.com/akhilsb/Secure-Distributed-Computing-Protocols.git"}
+rustls = "*"
 fnv = "1"
+rand = "0.6"

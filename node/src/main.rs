@@ -7,7 +7,7 @@ use signal_hook::{
     consts::{SIGINT, SIGTERM},
     iterator::Signals,
 };
-use std::net::{SocketAddr, SocketAddrV4};
+use std::{fs::File, io::{self, BufRead}, net::{SocketAddr, SocketAddrV4}};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -71,7 +71,7 @@ async fn main() -> Result<()> {
     if let Some(f) = m.value_of("ip") {
         let f_str = f.to_string();
         log::info!("Logging the file f {}", f_str);
-        config.update_config(util::io::file_to_ips(f.to_string()));
+        config.update_config(file_to_ips(f.to_string()));
     }
     let config = config;
     // Start the Reliable Broadcast protocol
@@ -122,19 +122,10 @@ async fn main() -> Result<()> {
             )
             .unwrap();
         }
-        "avid" => {
-            exit_tx = avid::Context::spawn(
-                config,
-                input_value.as_bytes().to_vec(),
-                node_normal,
-                node_crash,
-            )
-            .unwrap();
-        }
         "sync" => {
             let f_str = syncer_file.to_string();
             log::info!("Logging the file f {}", f_str);
-            let ip_str = util::io::file_to_ips(f_str);
+            let ip_str = file_to_ips(f_str);
             let mut net_map = FnvHashMap::default();
             let mut idx = 0;
             for ip in ip_str {
@@ -172,4 +163,15 @@ async fn main() -> Result<()> {
 pub fn to_socket_address(ip_str: &str, port: u16) -> SocketAddr {
     let addr = SocketAddrV4::new(ip_str.parse().unwrap(), port);
     addr.into()
+}
+
+pub fn file_to_ips(filename:String) -> Vec<String> {
+    let f = File::open(filename).expect("Failed to open the file");
+    let mut ips = Vec::new();
+    for line in io::BufReader::new(f).lines() {
+        if let Ok(s) = line {
+            ips.push(s.trim().to_string());
+        }
+    }
+    ips
 }
